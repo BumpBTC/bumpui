@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "InstantBitcoinWallet",
-    "slug": "instant-bitcoin-wallet",
-    "version": "0.0.1",
+    "name": "BumpBTCWallet",
+    "slug": "bumpbtc-wallet",
+    "version": "0.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -18,14 +18,24 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.instantbitcoinwallet"
+      "bundleIdentifier": "com.bumpbtc.bumpbtcwallet"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.yourcompany.instantbitcoinwallet"
+      "permissions": ["NFC"],
+      "intentFilters": [
+        {
+          "action": "android.nfc.action.NDEF_DISCOVERED",
+          "category": ["android.intent.category.DEFAULT"],
+          "data": {
+            "mimeType": "application/com.bumpbtc.bumpbtcwallet"
+          }
+        }
+      ],
+      "package": "com.bumpbtc.bumpbtcwallet"
     },
     "web": {
       "favicon": "./assets/favicon.png"

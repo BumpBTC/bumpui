@@ -90,19 +90,19 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
-  const sendTransaction = async (type, toAddress, amount) => {
+  const sendTransaction = useCallback(async (currency, toAddress, amount) => {
     try {
-      const response = await api.post(`/wallet/send-${type}`, {
+      const response = await api.post(`/wallet/send-${currency.toLowerCase()}`, {
         toAddress,
-        amount,
+        amount: parseFloat(amount),
       });
       await fetchWalletData();
-      return response.data;
+      return response.data.txid;
     } catch (error) {
-      console.error(`Failed to send ${type}:`, error);
+      console.error(`Failed to send ${currency}:`, error);
       throw error;
     }
-  };
+  }, [fetchWalletData]);
 
   const payLightningInvoice = async (paymentRequest) => {
     try {

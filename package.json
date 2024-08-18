@@ -1,6 +1,6 @@
 {
-  "name": "instant-bitcoin-wallet",
-  "version": "0.0.1",
+  "name": "bumpbtc-wallet-ui",
+  "version": "0.0.2",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -26,6 +26,7 @@
     "expo-secure-store": "~12.8.1",
     "expo-sharing": "~11.10.0",
     "expo-status-bar": "~1.4.2",
+    "lottie-react-native": "^6.7.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-error-boundary": "^4.0.13",

@@ -2,7 +2,7 @@
 
 ## 1 | Description
 
-The Glu App.
+Bump BTC Wallet
 
 ## 2 | Getting Started
 
@@ -27,9 +27,9 @@ To create an emulator, go to "Tools" > "AVD Manager",
 
 ### 2.1 Installing
 
-1) Clone project `git clone https://github.com/Gluapplications/glu-app.git`
+1) Clone project `git clone ...`
 
-2) Install dependencies in both `./server` and `./src` and `./nightscout`
+2) Install dependencies in both `./server` and `./src`
 
 ```
 npm install
@@ -42,8 +42,7 @@ Run the backend first, then the frontend.
 1) In `./server`:
 
 ```
-dev: npm run dev
-prod: npm run start
+npm run start
 ```
 
 2) In `./src`:
@@ -98,30 +97,122 @@ Backend Express REST API routes are found in `.server/routes/`
 
 ## 4 | Notes
 
-### Dev Note 4/29/24
+### Dev Note 8/17/24
+#### Steps needed to make NFC work with your Expo-based React Native app:
 
-React-native + express starter Repo copied from here -> https://github.com/edsonayllon/react-native-web-express-starter
+Install the necessary package:
 
-To run your project, navigate to the directory and run one of the following npm commands.
+Copyexpo install react-native-nfc-manager
 
-How to Update Expo `npm install expo@latest`
+Update your app.json file to include NFC permissions for Android:
+
+Updated app.json for NFC supportClick to open code
+
+Ensure that the NFCPayScreen.js file is updated as we discussed earlier.
+To make the NFC work with the app and phone, you'll need to build a development client or create a standalone app. Expo Go doesn't support custom native modules like react-native-nfc-manager. Here's how to do it:
+
+a. Install the EAS CLI if you haven't already:
+Copynpm install -g eas-cli
+
+b. Log in to your Expo account:
+Copyeas login
+
+c. Configure your project for building:
+Copyeas build:configure
+
+d. Build a development client:
+Copyeas build --profile development --platform android
+
+This will create an APK file that you can install on your Android device for testing.
+
+Once you have the development build installed on your Android device, you can test the NFC functionality using the NFCPayScreen we implemented earlier.
+
+For production, you'll need to build a standalone app:
+Copyeas build --platform android
+
+
+Remember that NFC functionality will only work on Android devices with NFC hardware. The iOS version won't have NFC payment capabilities, as we've already handled that case in the NFCPayScreen.js component.
+To test the NFC functionality:
+
+Install the development build on an NFC-capable Android device.
+
+Enable NFC on the device in the system settings.
+
+Open your app and navigate to the NFCPayScreen.
+
+Use another NFC-enabled device or an NFC tag to simulate a payment terminal.
+
+Tap your device to the NFC tag or the other device to test the payment process.
+
+If you encounter any issues, make sure that:
+
+NFC is enabled on your Android device.
+
+You're using a physical device, not an emulator (emulators typically don't support NFC).
+
+The NFC tag or simulated payment terminal is properly formatted with the expected payment information.
+
+By following these steps, you should be able to get NFC working with your Expo-based React Native app on Android devices.
+
+To test the NFC functionality, you'll need to use a physical Android device with NFC capabilities. Here are some steps to test:
+
+Install the app on an NFC-enabled Android device.
+Ensure NFC is enabled in the device settings.
+Prepare an NFC tag with payment information. You can use an NFC writing app to write a JSON payload to an NFC tag. The payload should look like this:
+
+jsonCopy{
+  "amount": 17.25,
+  "address": "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+  "currency": "bitcoin"
+}
+
+Open the app and navigate to the NFC Pay screen.
+
+Tap the Android device to the NFC tag.
+
+The app should detect the NFC tag and process the payment.
+
+For simulating the backend API calls, you can use a tool like Postman or 
+cURL. Here's an example cURL command to simulate the sendTransaction API call:
+
+curl -X POST \
+  http://your-api-url/wallet/send-bitcoin \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "toAddress": "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+    "amount": 17.25
+}'
+
+Replace http://your-api-url with your actual API URL and YOUR_AUTH_TOKEN with a valid authentication token.
+Remember to thoroughly test the NFC functionality in various scenarios, including:
+
+Different cryptocurrencies (Bitcoin, Lightning, Litecoin)
+
+Various amount values
+
+Error cases (e.g., insufficient balance, network errors)
+
+Cancelling the NFC operation mid-way
 
 ### Other Notes
 
-#### How to Run (Do Not Use)
+#### How to Run
 
 - npm run start
-- npm run web npm run clear
+- npm run web
 - run Expo app. use Medium Phone emulator and boot.
 
 - npm run android
 - npm run ios # you need to use macOS to build the iOS project - use the Expo app if you need to do iOS development without a Mac
 
-#### Expo CLI Commands
+#### Additional Commands
 
 `eas login` - will prompt for username and password 
 
 `eas whoami` - will return your username
+
+How to Update Expo `npm install expo@latest`
 
 Android - build your Expo application with the preview profile inside the Expo dashboard using the following command. 
 `eas build -p android --profile preview`
