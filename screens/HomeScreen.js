@@ -1,24 +1,42 @@
-import React, { useContext, useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Animated } from 'react-native';
-import { useTheme } from '../contexts/ThemeContext';
-import { WalletContext } from '../contexts/WalletContext';
-import BalanceDisplay from '../components/BalanceDisplay';
-import Button from '../components/Button';
-import TransactionList from '../components/TransactionList';
-import { Picker } from '@react-native-picker/picker';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Animatable from 'react-native-animatable';
+import React, { useContext, useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
+import { useTheme } from "../contexts/ThemeContext";
+import { WalletContext } from "../contexts/WalletContext";
+import BalanceDisplay from "../components/BalanceDisplay";
+import Button from "../components/Button";
+import TransactionList from "../components/TransactionList";
+import { Picker } from "@react-native-picker/picker";
+import CurrencySelector from "../components/CurrencySelector";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Animatable from "react-native-animatable";
 
 const HomeScreen = ({ navigation }) => {
   const { colors, isDarkMode, setWalletTheme } = useTheme();
-  const { wallets, transactions, fetchWalletData, isLoading, error } = useContext(WalletContext);
-  const [selectedWallet, setSelectedWallet] = useState('bitcoin');
+  const {
+    selectedCrypto,
+    setSelectedCrypto,
+    wallets,
+    transactions,
+    fetchWalletData,
+    isLoading,
+    error,
+  } = useContext(WalletContext);
+
+  const [selectedWallet, setSelectedWallet] = useState("bitcoin");
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       fetchWalletData();
     });
     return unsubscribe;
@@ -60,69 +78,112 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const renderActionButton = (title, iconName, onPress) => (
-    <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.card }]} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.actionButton, { backgroundColor: colors.card }]}
+      onPress={onPress}
+    >
       <Icon name={iconName} size={28} color={colors.primary} />
-      <Text style={[styles.actionButtonText, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.actionButtonText, { color: colors.text }]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 
-  const gradientColors = isDarkMode 
-    ? [colors.background, colors.primary + '44'] 
-    : [colors.background, colors.primary + '22'];
+  const gradientColors = isDarkMode
+    ? [colors.background, colors.primary + "44"]
+    : [colors.background, colors.primary + "22"];
 
   return (
     <LinearGradient colors={gradientColors} style={styles.container}>
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+          />
         }
       >
         {error && (
           <Animatable.View animation="shake" style={styles.errorContainer}>
-            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+            <Text style={[styles.errorText, { color: colors.error }]}>
+              {error}
+            </Text>
           </Animatable.View>
         )}
-        
+
         <View style={styles.walletSelectorContainer}>
-          <Picker
-            selectedValue={selectedWallet}
-            onValueChange={handleWalletChange}
-            style={[styles.walletSelector, { color: colors.text }]}
-          >
-            <Picker.Item label="Bitcoin" value="bitcoin" />
-            <Picker.Item label="Lightning" value="lightning" />
-            <Picker.Item label="Litecoin" value="litecoin" />
-          </Picker>
+          <CurrencySelector
+            selectedCrypto={selectedCrypto}
+            onSelect={() => {
+              const cryptos = ["bitcoin", "lightning", "litecoin"];
+              const currentIndex = cryptos.indexOf(selectedCrypto);
+              const nextIndex = (currentIndex + 1) % cryptos.length;
+              setSelectedCrypto(cryptos[nextIndex]);
+            }}
+          />
         </View>
 
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          <BalanceDisplay 
-            type={selectedWallet} 
-            balance={wallets.find(w => w.type === selectedWallet)?.balance || 0}
-            currency={selectedWallet === 'bitcoin' ? 'BTC' : selectedWallet === 'lightning' ? 'sat' : 'LTC'}
-            address={wallets.find(w => w.type === selectedWallet)?.address || ''}
+        <Animated.View
+          style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+        >
+          <BalanceDisplay
+            type={selectedWallet}
+            balance={
+              wallets.find((w) => w.type === selectedWallet)?.balance || 0
+            }
+            currency={
+              selectedWallet === "bitcoin"
+                ? "BTC"
+                : selectedWallet === "lightning"
+                ? "sat"
+                : "LTC"
+            }
+            address={
+              wallets.find((w) => w.type === selectedWallet)?.address || ""
+            }
           />
         </Animated.View>
 
         <View style={styles.buttonContainer}>
-          {renderActionButton("Send", "send", () => navigation.navigate('Send'))}
-          {renderActionButton("Receive", "qrcode", () => navigation.navigate('Receive'))}
-          {renderActionButton("Stake", "bank", () => navigation.navigate('Stake'))}
-          {renderActionButton("Bump Pay", "nfc", () => navigation.navigate('NFCPay'))}
-          {renderActionButton("Security", "shield-check", () => navigation.navigate('Security'))}
-          {renderActionButton("Shop", "shopping", () => navigation.navigate('Shop'))}
+          {renderActionButton("Send", "send", () =>
+            navigation.navigate("Send")
+          )}
+          {renderActionButton("Bump Pay", "nfc", () =>
+            navigation.navigate("NFCPay")
+          )}
+          {renderActionButton("Receive", "qrcode", () =>
+            navigation.navigate("Receive")
+          )}
+          {renderActionButton("Stake", "bank", () =>
+            navigation.navigate("Stake")
+          )}
+          {renderActionButton("Security", "shield-check", () =>
+            navigation.navigate("Security")
+          )}
+          {renderActionButton("Shop", "shopping", () =>
+            navigation.navigate("Shop")
+          )}
         </View>
 
-        <Animatable.View animation="pulse" iterationCount="infinite" style={styles.lightningButtonContainer}>
-          <Button 
-            title="⚡ Lightning Network" 
-            onPress={() => navigation.navigate('Lightning')} 
+        <Animatable.View
+          animation="pulse"
+          iterationCount="infinite"
+          style={styles.lightningButtonContainer}
+        >
+          <Button
+            title="⚡ Pay with Lightning Network"
+            onPress={() => navigation.navigate("Lightning")}
             style={styles.lightningButton}
             icon="flash"
           />
         </Animatable.View>
 
-        <TransactionList transactions={transactions.filter(t => t.walletType === selectedWallet)} />
+        <TransactionList
+          transactions={transactions.filter(
+            (t) => t.walletType === selectedWallet
+          )}
+        />
       </ScrollView>
     </LinearGradient>
   );
@@ -135,32 +196,32 @@ const styles = StyleSheet.create({
   errorContainer: {
     padding: 10,
     marginBottom: 10,
-    backgroundColor: '#ffeeee',
+    backgroundColor: "#ffeeee",
     borderRadius: 5,
   },
   errorText: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
   walletSelectorContainer: {
     marginVertical: 10,
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   walletSelector: {
     height: 50,
-    width: '100%',
+    width: "100%",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
     padding: 10,
   },
   actionButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '30%',
+    alignItems: "center",
+    justifyContent: "center",
+    width: "30%",
     aspectRatio: 1,
     borderRadius: 15,
     padding: 10,
@@ -174,14 +235,14 @@ const styles = StyleSheet.create({
   actionButtonText: {
     marginTop: 5,
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   lightningButtonContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 20,
   },
   lightningButton: {
-    backgroundColor: '#9146FF',
+    backgroundColor: "#9146FF",
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderRadius: 30,

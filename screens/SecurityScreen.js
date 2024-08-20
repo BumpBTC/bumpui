@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Modal,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { WalletContext } from "../contexts/WalletContext";
@@ -19,6 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 const SecurityScreen = ({ navigation }) => {
   const { colors } = useTheme();
   const { securityLevel, updateSecurityLevel } = useContext(WalletContext);
+  const { securitySettings, updateSecuritySettings } = useContext(WalletContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentSecurity, setCurrentSecurity] = useState("");
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
@@ -30,7 +32,7 @@ const SecurityScreen = ({ navigation }) => {
       level: 1,
       name: "Basic",
       icon: "shield-outline",
-      description: "No web2 connections, only ICP-based identity.",
+      description: "No web2 connections, only Bitcoin-based identity.",
     },
     {
       level: 2,
@@ -80,6 +82,8 @@ const SecurityScreen = ({ navigation }) => {
           twoFAEnabled,
           biometricsEnabled,
         });
+        await updateSecurityLevel(level);
+        setSecurityLevel(level);
         Alert.alert("Success", "Security settings updated successfully");
         setModalVisible(false);
       } catch (error) {
@@ -91,7 +95,7 @@ const SecurityScreen = ({ navigation }) => {
         setIsLoading(false);
       }
     },
-    [twoFAEnabled, biometricsEnabled, updateSecuritySettings]
+    [twoFAEnabled, biometricsEnabled, updateSecurityLevel, updateSecuritySettings]
   );
 
   const SecurityOption = ({ option }) => (
@@ -160,7 +164,6 @@ const SecurityScreen = ({ navigation }) => {
           />
           <Modal
             animationType="slide"
-            transparent={true}
             visible={modalVisible}
             onRequestClose={() => setModalVisible(false)}
           >

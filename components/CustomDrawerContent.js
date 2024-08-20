@@ -10,6 +10,16 @@ const CustomDrawerContent = (props) => {
   const { colors, toggleTheme } = useTheme();
   const { logout } = React.useContext(WalletContext);
 
+  const handleLogout = async () => {
+    await logout();
+    // Navigate to the Welcome screen
+    props.navigation.reset({
+      index: 0,
+      routes: [{ name: 'Welcome' }],
+    });
+  };
+
+
   return (
     <DrawerContentScrollView {...props} style={{ backgroundColor: colors.background }}>
       <View style={styles.drawerHeader}>

@@ -1,7 +1,13 @@
+import { Buffer } from 'buffer';
+global.Buffer = global.Buffer || Buffer;
+
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import api from "../services/api";
+import { removeToken } from '../services/auth';
 import { getToken } from "../services/auth";
-import * as bip39 from "bip39";
+import * as bip39 from 'bip39';
+// import * as bitcoin from 'bitcoinjs-lib';
+import * as bip32 from 'bip32';
 
 export const WalletContext = createContext();
 
@@ -17,6 +23,9 @@ export const WalletProvider = ({ children }) => {
   const [mnemonic, setMnemonic] = useState("");
   const [enableTaproot, setEnableTaproot] = useState(false);
   const [securityLevel, setSecurityLevel] = useState(1);
+  const [channelCreationProgress, setChannelCreationProgress] = useState(0);
+  const [exchangeRates, setExchangeRates] = useState({});
+  const [selectedCrypto, setSelectedCrypto] = useState("bitcoin");
 
   const fetchWalletData = useCallback(async () => {
     try {
@@ -42,26 +51,70 @@ export const WalletProvider = ({ children }) => {
     }
   }, []);
 
+  const fetchExchangeRates = useCallback(async () => {
+    try {
+      const response = await api.get(
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,litecoin&vs_currencies=usd"
+      );
+      setExchangeRates(response.data);
+    } catch (error) {
+      console.error("Failed to fetch exchange rates:", error);
+    }
+  }, []);
+
+  const logout = async () => {
+    try {
+      await removeToken();
+      setWallets([]);
+      setTransactions([]);
+      setError(null);
+      // You might want to reset other state variables here
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
+  };
+
   useEffect(() => {
     fetchWalletData();
     generateAddresses();
-  }, [fetchWalletData]);
+    fetchExchangeRates();
+    const interval = setInterval(fetchExchangeRates, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [fetchWalletData, fetchExchangeRates]);
 
-  const generateAddresses = async () => {
+  const convertAmount = useCallback(
+    (amount, fromCurrency, toCurrency) => {
+      if (fromCurrency === toCurrency) return amount;
+      if (fromCurrency === "USD") {
+        if (toCurrency === "lightning") {
+          return (amount * 100000000) / exchangeRates.bitcoin; // Convert to sats
+        }
+        return amount / exchangeRates[toCurrency];
+      }
+      if (toCurrency === "USD") {
+        if (fromCurrency === "lightning") {
+          return (amount * exchangeRates.bitcoin) / 100000000; // Convert from sats
+        }
+        return amount * exchangeRates[fromCurrency];
+      }
+      // Convert between cryptocurrencies
+      const usdAmount = convertAmount(amount, fromCurrency, "USD");
+      return convertAmount(usdAmount, "USD", toCurrency);
+    },
+    [exchangeRates]
+  );
+
+  const generateAddresses = useCallback(async () => {
     try {
-      const newMnemonic = bip39.generateMnemonic();
-      setMnemonic(newMnemonic);
-
-      const response = await api.post("/wallet/generateAddresses", {
-        mnemonic: newMnemonic,
-      });
+      const response = await api.post("/wallet/generate-addresses");
       setBtcAddress(response.data.btcAddress);
       setLtcAddress(response.data.ltcAddress);
       setTaprootAddress(response.data.taprootAddress);
+      setMnemonic(response.data.mnemonic);
     } catch (error) {
       console.error("Error generating addresses:", error);
     }
-  };
+  }, []);
 
   const sendBitcoin = async (toAddress, amount) => {
     try {
@@ -90,19 +143,22 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
-  const sendTransaction = useCallback(async (currency, toAddress, amount) => {
-    try {
-      const response = await api.post(`/wallet/send-${currency.toLowerCase()}`, {
-        toAddress,
-        amount: parseFloat(amount),
-      });
-      await fetchWalletData();
-      return response.data.txid;
-    } catch (error) {
-      console.error(`Failed to send ${currency}:`, error);
-      throw error;
-    }
-  }, [fetchWalletData]);
+  const sendTransaction = useCallback(
+    async (paymentType, toAddress, amount) => {
+      try {
+        const response = await api.post(`/wallet/send-${paymentType}`, {
+          toAddress,
+          amount: parseFloat(amount),
+        });
+        await fetchWalletData();
+        return response.data;
+      } catch (error) {
+        console.error(`Failed to send ${paymentType}:`, error);
+        throw error;
+      }
+    },
+    [fetchWalletData]
+  );
 
   const payLightningInvoice = async (paymentRequest) => {
     try {
@@ -119,22 +175,71 @@ export const WalletProvider = ({ children }) => {
 
   const createLightningWallet = async () => {
     try {
-      const response = await api.post('/lightning/create-wallet');
+      const response = await api.post("/lightning/create-wallet");
       await fetchWalletData();
       return response.data;
     } catch (error) {
-      console.error('Failed to create Lightning wallet:', error);
+      console.error("Failed to create Lightning wallet:", error);
+      throw error;
+    }
+  };
+
+  const createLightningChannel = async (nodeUri, amount) => {
+    try {
+      const response = await api.post("/lightning/create-channel", {
+        nodeUri,
+        amount,
+        channelName,
+      });
+      await fetchWalletData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create Lightning channel:", error);
+      throw error;
+    }
+  };
+
+  const getChannelConfigurations = async () => {
+    try {
+      const response = await api.get("/lightning/channel-configurations");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to get channel configurations:", error);
+      throw error;
+    }
+  };
+
+  const updateChannelConfiguration = async (configId, updates) => {
+    try {
+      const response = await api.put(
+        `/lightning/channel-configurations/${configId}`,
+        updates
+      );
+      await fetchWalletData();
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update channel configuration:", error);
+      throw error;
+    }
+  };
+
+  const deleteChannelConfiguration = async (configId) => {
+    try {
+      await api.delete(`/lightning/channel-configurations/${configId}`);
+      await fetchWalletData();
+    } catch (error) {
+      console.error("Failed to delete channel configuration:", error);
       throw error;
     }
   };
 
   const importLightningWallet = async (mnemonic) => {
     try {
-      const response = await api.post('/lightning/import-wallet', { mnemonic });
+      const response = await api.post("/lightning/import-wallet", { mnemonic });
       await fetchWalletData();
       return response.data;
     } catch (error) {
-      console.error('Failed to import Lightning wallet:', error);
+      console.error("Failed to import Lightning wallet:", error);
       throw error;
     }
   };
@@ -145,6 +250,7 @@ export const WalletProvider = ({ children }) => {
         amount,
         memo,
       });
+      await fetchWalletData();
       return response.data;
     } catch (error) {
       console.error("Failed to create Lightning invoice:", error);
@@ -181,22 +287,42 @@ export const WalletProvider = ({ children }) => {
 
   const importWallet = async (mnemonic, type) => {
     try {
-      const response = await api.post('/wallet/import', { mnemonic, type });
+      const response = await api.post("/wallet/import", { mnemonic, type });
       await fetchWalletData();
       return response.data;
     } catch (error) {
-      console.error('Failed to import wallet:', error);
+      console.error("Failed to import wallet:", error);
       throw error;
     }
   };
 
   const updateSecurityLevel = async (level) => {
     try {
-      const response = await api.post('/wallet/update-security', { level });
+      const response = await api.post("/wallet/update-security", { level });
       setSecurityLevel(response.data.securityLevel);
       return response.data;
     } catch (error) {
-      console.error('Failed to update security level:', error);
+      console.error("Failed to update security level:", error);
+      throw error;
+    }
+  };
+
+  const getLightningBalance = async () => {
+    try {
+      const response = await api.get("/lightning/balance");
+      return response.data.balance;
+    } catch (error) {
+      console.error("Failed to get Lightning balance:", error);
+      throw error;
+    }
+  };
+
+  const getLightningTransactionHistory = async () => {
+    try {
+      const response = await api.get("/lightning/transaction-history");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to get Lightning transaction history:", error);
       throw error;
     }
   };
@@ -206,28 +332,28 @@ export const WalletProvider = ({ children }) => {
       const response = await api.get(`/wallet/transaction-history/${type}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to get transaction history:', error);
+      console.error("Failed to get transaction history:", error);
       throw error;
     }
   };
 
   const backupWallet = async () => {
     try {
-      const response = await api.get('/wallet/backup');
+      const response = await api.get("/wallet/backup");
       return response.data;
     } catch (error) {
-      console.error('Failed to backup wallet:', error);
+      console.error("Failed to backup wallet:", error);
       throw error;
     }
   };
 
   const restoreWallet = async (backupData) => {
     try {
-      const response = await api.post('/wallet/restore', { backupData });
+      const response = await api.post("/wallet/restore", { backupData });
       await fetchWalletData();
       return response.data;
     } catch (error) {
-      console.error('Failed to restore wallet:', error);
+      console.error("Failed to restore wallet:", error);
       throw error;
     }
   };
@@ -244,13 +370,24 @@ export const WalletProvider = ({ children }) => {
         sendTransaction,
         sendLightning,
         createLightningWallet,
+        createLightningChannel,
         importLightningWallet,
         payLightningInvoice,
         createLightningInvoice,
         payLightningInvoice,
         openLightningChannel,
         closeLightningChannel,
+        getLightningBalance,
+        getLightningTransactionHistory,
+        getChannelConfigurations,
+        updateChannelConfiguration,
+        deleteChannelConfiguration,
+        channelCreationProgress,
+        selectedCrypto,
+        setSelectedCrypto,
         balance,
+        logout,
+        generateAddresses,
         btcAddress,
         ltcAddress,
         taprootAddress,
@@ -261,8 +398,10 @@ export const WalletProvider = ({ children }) => {
         securityLevel,
         updateSecurityLevel,
         getTransactionHistory,
+        convertAmount,
+        exchangeRates,
         backupWallet,
-        restoreWallet
+        restoreWallet,
       }}
     >
       {children}

@@ -53,18 +53,7 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.text }]}>Wallet Selection</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedWallet}
-          onValueChange={(itemValue) => setSelectedWallet(itemValue)}
-          style={{ color: colors.text }}
-        >
-          <Picker.Item label="Bitcoin" value="bitcoin" />
-          <Picker.Item label="Lightning" value="lightning" />
-          <Picker.Item label="Litecoin" value="litecoin" />
-        </Picker>
-      </View>
+ <Text style={[styles.walletText, { color: colors.text }]}>Security Level - 1</Text>
       <Button 
         title="Update Security Level" 
         onPress={() => navigation.navigate('Security')}
@@ -72,7 +61,7 @@ const SettingsScreen = ({ navigation }) => {
         icon="shield-check"
       />
       
-      <Text style={[styles.title, { color: colors.text, marginTop: 30 }]}>Account Options</Text>
+      <Text style={[styles.walletText, { color: colors.text, marginTop: 30 }]}>Account Options</Text>
       <Button 
         title="Account Details" 
         onPress={() => setAccountDetailsModalVisible(true)}

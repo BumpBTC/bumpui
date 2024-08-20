@@ -2,17 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import Button from '../components/Button';
+import CropSquareIcon from '@mui/icons-material/CropSquare';
 
 const ShopScreen = () => {
   const { colors } = useTheme();
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Image 
-        source={require('../assets/square-logo.png')} 
-        style={styles.logo}
-        resizeMode="contain"
-      />
+
+        <CropSquareIcon    style={styles.logo}
+        resizeMode="contain" />
       <Text style={[styles.title, { color: colors.text }]}>Shop with Square</Text>
       <Text style={[styles.description, { color: colors.text }]}>
         Use your Bitcoin, Lightning, or Litecoin to shop at millions of merchants worldwide with Square integration.

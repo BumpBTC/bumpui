@@ -2,15 +2,16 @@ import React, { useContext, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Share, Picker, Alert } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import Button from '../components/Button';
+import CurrencySelector from "../components/CurrencySelector";
 import * as Clipboard from 'expo-clipboard';
 import { WalletContext } from '../contexts/WalletContext';
-import { ThemeContext } from '../contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import * as Animatable from 'react-native-animatable';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const ReceiveScreen = () => {
-  const { wallets, btcAddress, createLightningInvoice } = useContext(WalletContext);
-  const { colors } = useContext(ThemeContext);
+  const { wallets, selectedCrypto, setSelectedCrypto, btcAddress, ltcAddress, taprootAddress, createLightningInvoice } = useContext(WalletContext);
+  const { colors } = useTheme();
   const [selectedCoin, setSelectedCoin] = useState('bitcoin');
   const [qrValue, setQrValue] = useState('');
   const [lightningInvoice, setLightningInvoice] = useState('');
@@ -56,15 +57,17 @@ const ReceiveScreen = () => {
   return (
     <LinearGradient colors={[colors.background, colors.primary + '22']} style={styles.container}>
       <Animatable.View animation="fadeIn" style={styles.content}>
-        <Picker
-          selectedValue={selectedCoin}
-          style={[styles.picker, { color: colors.text }]}
-          onValueChange={(itemValue) => setSelectedCoin(itemValue)}
-        >
-          <Picker.Item label="Bitcoin" value="bitcoin" />
-          <Picker.Item label="Lightning" value="lightning" />
-          <Picker.Item label="Litecoin" value="litecoin" />
-        </Picker>
+      <View style={styles.walletSelectorContainer}>
+        <CurrencySelector
+          selectedCrypto={selectedCrypto}
+          onSelect={() => {
+            const cryptos = ["bitcoin", "lightning", "litecoin"];
+            const currentIndex = cryptos.indexOf(selectedCrypto);
+            const nextIndex = (currentIndex + 1) % cryptos.length;
+            setSelectedCrypto(cryptos[nextIndex]);
+          }}
+        />
+        </View>
         <Animatable.View animation="zoomIn" style={styles.qrContainer}>
           {qrValue ? (
             <QRCode

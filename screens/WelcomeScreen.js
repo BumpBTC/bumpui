@@ -21,8 +21,8 @@ const WelcomeScreen = ({ navigation }) => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View style={{ ...styles.content, opacity: fadeAnim }}>
         <Image source={require('../assets/logo.png')} style={styles.logo} />
-        <Text style={[styles.title, { color: colors.text }]}>Welcome to InstantBitcoinWallet</Text>
-        <Text style={[styles.subtitle, { color: colors.text }]}>The fastest and easiest way to use Bitcoin</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Bump-to-Pay</Text>
+        <Text style={[styles.subtitle, { color: colors.text }]}>The fastest and easiest way to use Bitcoin.</Text>
         <Button title="Create Account" onPress={() => navigation.navigate('Signup')} />
         <Button
           title="Login"

@@ -253,3 +253,26 @@ publicKey
 type
 : 
 "bitcoin"
+
+### Lightning 
+
+#### Testnet
+
+LN Testnet Faucets:
+1. HTLC.me Testnet Faucet: https://htlc.me/
+2. Lightning Polar Testnet Faucet: https://faucet.lightning.community/
+3. Bitcoin Testnet Faucet (for on-chain funds): https://testnet-faucet.mempool.co/
+
+Free Public Testnet LN node:
+
+1. ACINQ's testnet node:
+   02df5ffe895c778e10f7742a6c5b8a0cefbe9465df58b92fadeb883752c8107c8f@3.33.236.230:9735
+
+2. Blockstream's testnet node:
+   0270685ca81a8e4d4d01beec5781f4cc924684072ae52c507f8ebe9daf0caaab7b@159.203.125.125:9735
+
+3. LND testnet node:
+   03ce09c8922b1aca0a43c869af2db821a9e12a3ca2c9eebc76e4d1e5e4c4c3d840@34.250.234.192:9735
+
+4. c-lightning testnet node:
+   0225ff2ae6a3d9722b625072503c2f64f6eddb78d739379d2ee55a16b3b0ed0a17@52.50.244.44:9735

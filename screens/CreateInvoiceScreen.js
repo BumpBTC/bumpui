@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch, TextInput } from 'react-native';
+import { Alert, View, Text, StyleSheet, Switch, TextInput } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { WalletContext } from '../contexts/WalletContext';
 import Button from '../components/Button';
 import api from '../services/api';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +14,7 @@ const CreateInvoiceScreen = () => {
   const [isBtc, setIsBtc] = useState(false);
   const [btcAmount, setBtcAmount] = useState('');
   const [usdAmount, setUsdAmount] = useState('');
+  const { createLightningInvoice, convertAmount } = useContext(WalletContext);
 
   useEffect(() => {
     if (isBtc) {
@@ -39,15 +41,28 @@ const CreateInvoiceScreen = () => {
   };
 
   const handleCreateInvoice = async () => {
+    if (!amount || !memo) {
+      Alert.alert('Error', 'Please enter both amount and memo');
+      return;
+    }
+
     try {
-      const response = await api.post('/lightning/createInvoice', {
-        amount: isBtc ? btcAmount : usdAmount,
-        memo,
-        isBtc,
-      });
-      navigation.navigate('QRCodeScreen', { invoice: response.data.paymentRequest });
+      const amountInSats = isBtc 
+      ? Math.round(parseFloat(amount) * 100000000) 
+      : Math.round(convertAmount(parseFloat(amount), 'USD', 'BTC') * 100000000);
+
+      const invoice = await createLightningInvoice(amountInSats, memo);
+      navigation.navigate('QRCodeScreen', { invoice: invoice.paymentRequest });
+      
+      // const response = await api.post('/lightning/createInvoice', {
+      //   amount: isBtc ? btcAmount : usdAmount,
+      //   memo,
+      //   isBtc,
+      // });
+      // navigation.navigate('QRCodeScreen', { invoice: response.data.paymentRequest });
     } catch (error) {
       console.error('Error creating invoice:', error);
+      Alert.alert('Error', 'Failed to create invoice. Please try again.');
     }
   };
 
@@ -110,7 +125,8 @@ const styles = StyleSheet.create({
       width: '100%',
     },
     button: {
-      width: '45%',
+      width: '100%',
+      marginTop: 20,
     },
     fullWidthButton: {
       width: '100%',

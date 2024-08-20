@@ -7,6 +7,7 @@ import {
   Dimensions,
   Platform,
   Alert,
+  TextInput,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -17,8 +18,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import NfcManager, { NfcTech, Ndef } from "react-native-nfc-manager";
-import { Svg, Path } from "react-native-svg";
-import LottieView from "lottie-react-native";
+import {
+  Svg,
+  Path,
+  LinearGradient as SvgGradient,
+  Stop,
+} from "react-native-svg";
+// import LottieView from "lottie-react-native";
+import LottieView from "../components/LottieView";
 import Button from "../components/Button";
 import { useTheme } from "../contexts/ThemeContext";
 import { WalletContext } from "../contexts/WalletContext";
@@ -29,7 +36,6 @@ const { width, height } = Dimensions.get("window");
 
 const NFCPayScreen = ({ navigation }) => {
   const [isNfcSupported, setIsNfcSupported] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [selectedCrypto, setSelectedCrypto] = useState("bitcoin");
   const [amount, setAmount] = useState(17.25);
   const [inCrypto, setInCrypto] = useState(false);
@@ -100,14 +106,19 @@ const NFCPayScreen = ({ navigation }) => {
       );
 
       if (!wallet) {
-        throw new Error(`No ${currency} wallet found`);
+        throw new Error(`No ${selectedCrypto} wallet found`);
       }
 
       // await sendTransaction(selectedCrypto, "MERCHANT_ADDRESS", amount);
-      const txid = await sendTransaction(currency, address, amount);
+      const txid = await sendTransaction(
+        currency,
+        selectedCrypto,
+        address,
+        parseFloat(amount)
+      );
       Alert.alert(
         "Success",
-        `Payment of ${amount} ${currency} sent successfully. TXID: ${txid}`
+        `Payment of ${amount} ${selectedCrypto} sent successfully. TXID: ${txid}`
       );
       setIsComplete(true);
     } catch (error) {
@@ -118,6 +129,32 @@ const NFCPayScreen = ({ navigation }) => {
       setIsProcessing(false);
     }
   }, [isNfcSupported, selectedCrypto, amount, wallets, sendTransaction]);
+
+  const getCryptoIcon = (crypto) => {
+    switch (crypto) {
+      case "bitcoin":
+        return "₿";
+      case "lightning":
+        return "⚡";
+      case "litecoin":
+        return "Ł";
+      default:
+        return "";
+    }
+  };
+
+  const getThemeColor = () => {
+    switch (selectedCrypto) {
+      case "bitcoin":
+        return colors.bitcoin;
+      case "lightning":
+        return colors.lightning;
+      case "litecoin":
+        return colors.litecoin;
+      default:
+        return colors.primary;
+    }
+  };
 
   if (Platform.OS === "ios") {
     return (
@@ -144,7 +181,6 @@ const NFCPayScreen = ({ navigation }) => {
       </View>
     );
   }
-
 
   const renderCryptoSelector = () => (
     <View style={styles.cryptoSelector}>
@@ -196,20 +232,14 @@ const NFCPayScreen = ({ navigation }) => {
   );
 
   return (
-    <LinearGradient
-      colors={[colors.background, colors.primary + "22"]}
-      style={styles.container}
-    >
-      {" "}
-      {renderCryptoSelector()}
-      {renderAmount()}
+    <LinearGradient colors={["#000033", "#333333"]} style={styles.container}>
       <TouchableOpacity
-        style={[styles.payButton, { backgroundColor: colors.primary }]}
+        style={[styles.payButton, { backgroundColor: getThemeColor() }]}
         onPress={handleNfcPayment}
         disabled={isProcessing}
       >
         <Animated.View style={[styles.pixelOverlay, pixelStyle]} />
-        <Svg height="40" width="40" viewBox="0 0 24 24" style={styles.nfcIcon}>
+        <Svg height="80" width="80" viewBox="0 0 24 24" style={styles.nfcIcon}>
           <Path
             d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zM18 6h-5c-1.1 0-2 .9-2 2v2.28c-.6.35-1 .98-1 1.72 0 1.1.9 2 2 2s2-.9 2-2c0-.74-.4-1.38-1-1.72V8h3v8H8V8h2V6H6v12h12V6z"
             fill="#FFFFFF"
@@ -218,20 +248,48 @@ const NFCPayScreen = ({ navigation }) => {
         <Text style={styles.payButtonText}>
           {isProcessing ? "Processing..." : "Hold Here to Pay"}
         </Text>
-        <Animated.View style={[styles.processingOverlay, processingStyle]} />
       </TouchableOpacity>
-      {/* <Animatable.View animation="fadeIn" style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>NFC Payment</Text>
-        <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Tap your device to an NFC terminal to make a payment.
+      <View style={styles.content}>
+  
+        <View style={[{ backgroundColor: getThemeColor(), pb: 10 }]}>
+          <TouchableOpacity
+            style={styles.cryptoSelector}
+            onPress={() => {
+              const cryptos = ["bitcoin", "lightning", "litecoin"];
+              const currentIndex = cryptos.indexOf(selectedCrypto);
+              const nextIndex = (currentIndex + 1) % cryptos.length;
+              setSelectedCrypto(cryptos[nextIndex]);
+            }}
+          >
+            <Text style={styles.cryptoIcon}>
+              {getCryptoIcon(selectedCrypto)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.amountText, { paddingVertical: 10 }]}>
+          {selectedCrypto.toUpperCase()}
         </Text>
-        <Button
-          title={isScanning ? "Scanning..." : "Scan NFC"}
-          onPress={handleNFCScan}
-          loading={isScanning}
-          style={styles.button}
+        <TextInput
+          style={styles.amountInput2}
+          value={amount}
+          onChangeText={setAmount}
+          keyboardType="numeric"
         />
-      </Animatable.View> */}
+        {/* {renderCryptoSelector()} */}
+        {renderAmount()}
+        </View>
+
+
+      {/* <Svg height={height / 3} width={width}>
+        <SvgGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#000033" stopOpacity="1" />
+          <Stop offset="1" stopColor="#333333" stopOpacity="1" />
+        </SvgGradient>
+        <Path
+          d="M0 0 L${width} 0 L${width} ${height/3} Q${width/2} ${height/2.5} 0 ${height/3} Z"
+          fill="url(#grad)"
+        />
+      </Svg>{" "} */}
     </LinearGradient>
   );
 };
@@ -239,68 +297,110 @@ const NFCPayScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   content: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   cryptoSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 20,
+    borderRadius: 15,
+    padding: 4,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
   },
   cryptoOption: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   cryptoText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
+  },
+  cryptoIcon: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  payeeText: {
+    color: "white",
+    fontSize: 16,
+    marginBottom: 10,
   },
   amountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 40,
+    
   },
   amountText: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginRight: 10,
   },
   switchIcon: {
     marginLeft: 10,
   },
+  amountInput: {
+    color: "white",
+    fontSize: 36,
+    fontWeight: "bold",
+    
+  },
+  amountInput2: {
+    width: '100%',
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
   payButton: {
-    width: width * 0.8,
+    width: width * 2,
     height: width * 0.8,
-    borderRadius: width * 0.4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
-    overflow: 'hidden',
+    borderRadius: "50%",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -60,
+    overflow: "hidden",
+  },
+  paymentBox: {
+    padding: 10,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   payButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   pixelOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
   },
   nfcIcon: {
     marginBottom: 10,
@@ -311,7 +411,7 @@ const styles = StyleSheet.create({
   },
   completeText: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 20,
   },
   title: {
