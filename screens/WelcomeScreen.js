@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { WalletContext } from "../contexts/WalletContext";
 import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 import Button from '../components/Button';
 import LoginModal from '../components/LoginModal';
@@ -8,6 +9,13 @@ const WelcomeScreen = ({ navigation }) => {
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const { colors } = useTheme();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const { login } = useContext(WalletContext);
+
+  const handleLoginSuccess = (token) => {
+    login(token);
+    setLoginModalVisible(false);
+  };
+
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -23,7 +31,7 @@ const WelcomeScreen = ({ navigation }) => {
         <Image source={require('../assets/logo.png')} style={styles.logo} />
         <Text style={[styles.title, { color: colors.text }]}>Bump-to-Pay</Text>
         <Text style={[styles.subtitle, { color: colors.text }]}>The fastest and easiest way to use Bitcoin.</Text>
-        <Button title="Create Account" onPress={() => navigation.navigate('Signup')} />
+        <Button title="Create Account" onPress={() => navigation.navigate('SignUp')} />
         <Button
           title="Login"
           onPress={() => setLoginModalVisible(true)}
@@ -34,6 +42,7 @@ const WelcomeScreen = ({ navigation }) => {
       <LoginModal
         visible={loginModalVisible}
         onClose={() => setLoginModalVisible(false)}
+        onLoginSuccess={handleLoginSuccess}
         navigation={navigation}
       />
     </View>

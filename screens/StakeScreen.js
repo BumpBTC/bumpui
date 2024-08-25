@@ -57,6 +57,9 @@ const StakeScreen = ({ navigation }) => {
       <Text style={[styles.description, { color: colors.text }]}>
         Earn rewards by staking your Bitcoin. The minimum staking period is 30 days.
       </Text>
+      <Text style={[styles.description2, { color: colors.text }]}>
+        Note: BTC is stacked on Bitcoin L2, Stacks. Ream more about stacking here - https://www.stacks.co/learn/stacking
+      </Text>
       <Text style={[styles.balanceText, { color: colors.text }]}>Available Balance: {balance} BTC</Text>
       <Input
           label="Amount"
@@ -81,7 +84,6 @@ const StakeScreen = ({ navigation }) => {
       <Text style={[styles.estimatedRewards, { color: colors.text }]}>
         Estimated Annual Reward: {estimatedReward} BTC
       </Text>
-      <Button title="Stake" onPress={handleStake} />
       </Animatable.View>
     </LinearGradient>
   );
@@ -96,6 +98,10 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
+    marginBottom: 20,
+  },
+  description2: {
+    fontSize: 12,
     marginBottom: 20,
   },
   title: {
@@ -113,6 +119,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   estimatedRewards: {
+    paddingTop: 10,
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 20,
