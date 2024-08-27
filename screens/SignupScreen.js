@@ -7,7 +7,7 @@ import {
   ScrollView,
   Switch,
   Text,
-  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Input from "../components/Input";
@@ -17,6 +17,7 @@ import { saveToken } from "../services/auth";
 import { WalletContext } from "../contexts/WalletContext";
 import { useTheme } from "../contexts/ThemeContext";
 import BackupModal from "../components/BackupModal";
+import axios from 'axios';
 
 const SignupScreen = ({ navigation }) => {
   const [username, setUsername] = useState("");
@@ -32,7 +33,7 @@ const SignupScreen = ({ navigation }) => {
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [walletData, setWalletData] = useState(null);
   const [selectedWalletType, setSelectedWalletType] = useState("bitcoin");
-  const { login, setSelectedCrypto } = useContext(WalletContext);
+  const { login, setWallets, setSelectedCrypto } = useContext(WalletContext);
   const { colors } = useTheme();
 
   // const handleSignup = async () => {
@@ -84,122 +85,83 @@ const SignupScreen = ({ navigation }) => {
   // };
 
   const handleSignup = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
     try {
-      const response = await axios.post("http://localhost:5000/api/signup", {
+      const response = await api.post("/auth/signup", {
         username,
-        password,
         email,
-        createBitcoin,
-        createLitecoin,
-        createLightning,
+        password,
       });
       console.log("Signup successful:", response.data);
-      navigation.navigate("Home", { user: response.data.user });
+      await login(response.data.token);
+      setWallets(response.data.user.wallets || []);
+      navigation.navigate("Home"); // Remove the user parameter
     } catch (error) {
-      console.error("Signup error:", error.response.data);
+      console.error("Signup error:", error.response?.data || error.message);
+      Alert.alert('Signup Failed', error.response?.data?.error || 'Failed to create account. Please try again.');
     }
   };
 
-  const handleBackupComplete = async (backedUp, backupEmail) => {
-    setShowBackupModal(false);
-    try {
-      const { token, user } = await api.post("/auth/complete-signup", {
-        backedUp,
-        email: backupEmail || email,
-      });
-      await login(token);
-      setSelectedCrypto(selectedWalletType);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Home" }],
-      });
-    } catch (error) {
-      console.error("Error completing signup:", error);
-      Alert.alert("Error", "Failed to complete signup. Please try again.");
-    }
-  };
+  // const handleBackupComplete = async (backedUp, backupEmail) => {
+  //   setShowBackupModal(false);
+  //   try {
+  //     const { token, user } = await api.post("/auth/complete-signup", {
+  //       backedUp,
+  //       email: backupEmail || email,
+  //     });
+  //     await login(token);
+  //     setSelectedCrypto(selectedWalletType);
+  //     navigation.reset({
+  //       index: 0,
+  //       routes: [{ name: "Home" }],
+  //     });
+  //   } catch (error) {
+  //     console.error("Error completing signup:", error);
+  //     Alert.alert("Error", "Failed to complete signup. Please try again.");
+  //   }
+  // };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <TextInput
-        label="Username"
+        style={styles.input}
         value={username}
         onChangeText={setUsername}
         placeholder="Enter a username"
-        leftIcon={
-          <Ionicons name="person-outline" size={24} color={colors.text} />
-        }
+        placeholderTextColor={colors.text}
       />
       <TextInput
-        label="Password"
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Enter email (optional)"
+        placeholderTextColor={colors.text}
+        keyboardType="email-address"
+      />
+      <TextInput
+        style={styles.input}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         placeholder="Create a password"
-        leftIcon={
-          <Ionicons name="lock-closed-outline" size={24} color={colors.text} />
-        }
+        placeholderTextColor={colors.text}
       />
       <TextInput
-        label="Confirm Password"
+        style={styles.input}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
         placeholder="Confirm your password"
-        leftIcon={
-          <Ionicons name="lock-closed-outline" size={24} color={colors.text} />
-        }
+        placeholderTextColor={colors.text}
       />
-      <TextInput
-        label="Email (optional)"
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Enter your email"
-        keyboardType="email-address"
-      />
-      <View style={styles.walletSelection}>
-      <View style={styles.switchContainer}>
-        <Text>Create Bitcoin Wallet</Text>
-        <Switch value={createBitcoin} onValueChange={setCreateBitcoin} />
-      </View>
-      <View style={styles.switchContainer}>
-        <Text>Create Litecoin Wallet</Text>
-        <Switch value={createLitecoin} onValueChange={setCreateLitecoin} />
-      </View>
-      <View style={styles.switchContainer}>
-        <Text>Create Lightning Channel</Text>
-        <Switch value={createLightning} onValueChange={setCreateLightning} />
-      </View>
-        <Text style={[styles.walletLabel, { color: colors.text }]}>
-          Select Wallet Type:
-        </Text>
-        {["bitcoin", "lightning", "litecoin"].map((type) => (
-          <View key={type} style={styles.walletOption}>
-            <Text style={[styles.walletType, { color: colors.text }]}>
-              {type.charAt(0).toUpperCase() + type.slice(1)} Wallet
-            </Text>
-            <Switch
-              value={selectedWalletType === type}
-              onValueChange={() => setSelectedWalletType(type)}
-              trackColor={{ false: colors.accent, true: colors.primary }}
-            />
-          </View>
-        ))}
-      </View>
       <Button title="Sign Up" onPress={handleSignup} />
-      <Text style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
-        Already have an account? Log in
-      </Text>
-      
-      <Button title="Create Account" onPress={handleSignup} />
-
-      <BackupModal
-        visible={showBackupModal}
-        walletData={walletData}
-        onComplete={handleBackupComplete}
-      />
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.loginLink}>Already have an account? Log in</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -208,6 +170,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  loginLink: {
+    marginTop: 15,
+    color: 'blue',
+    textAlign: 'center',
   },
   walletSelection: {
     marginBottom: 20,

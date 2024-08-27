@@ -52,7 +52,7 @@ export const WalletProvider = ({ children }) => {
       try {
         setIsLoading(true);
         setError(null);
-        const token = await getToken();
+        const token = await AsyncStorage.getItem('userToken');
         if (!token) {
           setError("No token found. Please log in.");
           setIsLoading(false);
@@ -128,9 +128,9 @@ export const WalletProvider = ({ children }) => {
   useEffect(() => {
     checkLoginStatus();
     fetchWalletData();
-    generateAddresses();
+    // generateAddresses();
     fetchExchangeRates();
-    const interval = setInterval(fetchExchangeRates, 60000); // Update every minute
+    const interval = setInterval(fetchExchangeRates, 300000); // Update every 5 minutes
     return () => clearInterval(interval);
   }, [fetchWalletData, fetchExchangeRates]);
 
@@ -172,17 +172,17 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
-  const generateAddresses = useCallback(async () => {
-    try {
-      const response = await api.post("/wallet/generate-addresses");
-      setBtcAddress(response.data.btcAddress);
-      setLtcAddress(response.data.ltcAddress);
-      setTaprootAddress(response.data.taprootAddress);
-      setMnemonic(response.data.mnemonic);
-    } catch (error) {
-      console.error("Error generating addresses:", error);
-    }
-  }, []);
+  // const generateAddresses = useCallback(async () => {
+  //   try {
+  //     const response = await api.post("/wallet/generate-addresses");
+  //     setBtcAddress(response.data.btcAddress);
+  //     setLtcAddress(response.data.ltcAddress);
+  //     setTaprootAddress(response.data.taprootAddress);
+  //     setMnemonic(response.data.mnemonic);
+  //   } catch (error) {
+  //     console.error("Error generating addresses:", error);
+  //   }
+  // }, []);
 
   const sendBitcoin = async (toAddress, amount) => {
     try {
@@ -435,6 +435,7 @@ export const WalletProvider = ({ children }) => {
       value={{
         wallet,
         wallets,
+        setWallets,
         transactions,
         isLoading,
         isLoggedIn,
@@ -466,7 +467,7 @@ export const WalletProvider = ({ children }) => {
         login,
         logout,
         checkLoginStatus,
-        generateAddresses,
+        // generateAddresses,
         btcAddress,
         ltcAddress,
         taprootAddress,

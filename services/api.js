@@ -6,6 +6,16 @@ const api = axios.create({
   baseURL: 'http://192.168.1.199:5000/api',
 });
 
+export const getWalletInfo = async () => {
+  try {
+    const response = await axios.get('/wallet/info');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching wallet info:', error);
+    throw error;
+  }
+};
+
 api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem('userToken');

@@ -20,11 +20,13 @@ import CurrencySelector from "../components/CurrencySelector";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Animatable from "react-native-animatable";
+import { getWalletInfo } from "../services/api";
 
 const HomeScreen = ({ navigation, balance, address, route }) => {
-  const { user } = route.params;
+  // const { user } = route.params;
   const { colors, isDarkMode, setWalletTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
+  const [walletInfo, setWalletInfo] = useState(null);
   const {
     selectedCrypto,
     setSelectedCrypto,
@@ -41,9 +43,18 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    fetchWalletData();
     loadWalletData();
+    const fetchWalletInfo = async () => {
+      try {
+        const info = await getWalletInfo();
+        setWalletInfo(info);
+      } catch (error) {
+        console.error("Error fetching wallet info:", error);
+      }
+    };
     fetchWalletInfo();
-  }, [fetchWalletInfo]);
+  }, []);
 
   // useEffect(() => {
   //   const unsubscribe = navigation.addListener("focus", () => {
@@ -59,8 +70,15 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
 
   const loadWalletData = async () => {
     setIsLoading(true);
-    await fetchWalletInfo();
-    setIsLoading(false);
+    try {
+      await fetchWalletData();
+      const info = await getWalletInfo();
+      setWalletInfo(info);
+    } catch (error) {
+      console.error("Error loading wallet data:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateWallet = async () => {
@@ -76,8 +94,8 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
     (w) => w.type === selectedCrypto && w.isActive
   );
 
-  const handleRefresh = () => {
-    fetchWalletData();
+  const handleRefresh = async () => {
+    await loadWalletData();
   };
 
   const handleWalletChange = (itemValue) => {
@@ -131,11 +149,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
     <LinearGradient colors={gradientColors} style={styles.container}>
       <ScrollView
         refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={loadWalletData}
-            colors={[colors.primary]}
-          />
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
         }
       >
         {error && (
@@ -163,54 +177,48 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
           ))}
         </View> */}
 
-        <View style={styles.container}>
-          <Text style={styles.title}>Welcome, {user.username}!</Text>
-          {user.bitcoinAddress && (
-            <Text style={styles.address}>
-              Bitcoin Address: {user.bitcoinAddress}
+        <Text style={styles.title}>Welcome!</Text>
+        {walletInfo && walletInfo.wallets && walletInfo.wallets[0] && (
+          <View>
+            <Text style={styles.walletInfo}>
+              Bitcoin Address: {walletInfo.wallets[0].address}
             </Text>
-          )}
-          {user.litecoinAddress && (
-            <Text style={styles.address}>
-              Litecoin Address: {user.litecoinAddress}
+            <Text style={styles.walletInfo}>
+              Balance: {walletInfo.wallets[0].balance} BTC
             </Text>
-          )}
-          {user.lightningNodeId && (
-            <Text style={styles.address}>
-              Lightning Node ID: {user.lightningNodeId}
-            </Text>
-          )}
-        </View>
+          </View>
+        )}
 
         <View style={styles.cardsContainer}>
-          {activeWallet ? (
-            <>
-              <WalletCard
-                type={activeWallet.type}
-                balance={activeWallet.balance}
-                address={activeWallet.address}
-                currency={
-                  selectedWallet === "bitcoin"
-                    ? "BTC"
-                    : selectedWallet === "lightning"
-                    ? "sat"
-                    : "LTC"
-                }
-              />
-              <View style={styles.savingsCardPlaceholder}>
-                {/* Placeholder for future savings card */}
-              </View>
-            </>
+          {wallets && wallets.length > 0 ? (
+            wallets.map((wallet, index) => (
+              <>
+                <WalletCard
+                  key={index}
+                  type={wallet.type}
+                  balance={wallet.balance}
+                  address={wallet.address}
+                  currency={
+                    selectedWallet === "bitcoin"
+                      ? "BTC"
+                      : selectedWallet === "lightning"
+                      ? "SATS"
+                      : "LTC"
+                  }
+                />
+                <View style={styles.savingsCardPlaceholder}>
+                  {/* Placeholder for future savings card */}
+                </View>
+              </>
+            ))
           ) : (
             <View style={styles.createWalletContainer}>
               <Text style={[styles.createWalletText, { color: colors.text }]}>
-                No {selectedCrypto} wallet found
+                No wallet found
               </Text>
               <Button
                 title="Create Wallet"
-                onPress={() =>
-                  navigation.navigate("CreateWallet", { type: selectedCrypto })
-                }
+                onPress={() => navigation.navigate("Settings")}
               />
             </View>
           )}
@@ -219,12 +227,13 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
         <View style={styles.walletSelectorContainer}>
           <CurrencySelector
             selectedCrypto={selectedCrypto}
-            onSelect={() => {
-              const cryptos = ["bitcoin", "lightning", "litecoin"];
-              const currentIndex = cryptos.indexOf(selectedCrypto);
-              const nextIndex = (currentIndex + 1) % cryptos.length;
-              setSelectedCrypto(cryptos[nextIndex]);
-            }}
+            onSelect={handleWalletChange}
+            // onSelect={() => {
+            //   const cryptos = ["bitcoin", "lightning", "litecoin"];
+            //   const currentIndex = cryptos.indexOf(selectedCrypto);
+            //   const nextIndex = (currentIndex + 1) % cryptos.length;
+            //   setSelectedCrypto(cryptos[nextIndex]);
+            // }}
           />
         </View>
         {/* <View>
@@ -242,17 +251,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
         <Animated.View
           style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         >
-          {activeWallet ? (
             <BalanceDisplay
-              type={activeWallet.type}
-              balance={activeWallet.balance}
-              address={activeWallet.address}
-            />
-          ) : (
-            <Text>No active wallet</Text>
-          )}
-
-          <BalanceDisplay
             type={selectedWallet}
             balance={
               wallets.find((w) => w.type === selectedWallet)?.balance || 0
@@ -267,7 +266,8 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
             address={
               wallets.find((w) => w.type === selectedWallet)?.address || ""
             }
-          />
+            />
+
         </Animated.View>
 
         <View style={styles.buttonContainer}>
@@ -317,13 +317,13 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
   },
   content: {
@@ -368,6 +368,10 @@ const styles = StyleSheet.create({
   },
   walletOptionText: {
     fontWeight: "bold",
+  },
+  walletInfo: {
+    fontSize: 16,
+    marginBottom: 10,
   },
   buttonContainer: {
     flexDirection: "row",
@@ -418,27 +422,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   input: {
-    width: '100%',
+    width: "100%",
     height: 40,
-    borderColor: 'gray',
+    borderColor: "gray",
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
   },
   switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
     marginBottom: 10,
   },
   loginLink: {
     marginTop: 20,
-    color: 'blue',
+    color: "blue",
   },
   signupLink: {
     marginTop: 20,
-    color: 'blue',
+    color: "blue",
   },
   address: {
     marginTop: 10,
