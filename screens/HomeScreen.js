@@ -27,6 +27,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
   const { colors, isDarkMode, setWalletTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [walletInfo, setWalletInfo] = useState(null);
+  const [username, setUsername] = useState(false);
   const {
     selectedCrypto,
     setSelectedCrypto,
@@ -41,6 +42,8 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
   const [selectedWallet, setSelectedWallet] = useState("bitcoin");
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const [isCheckingOnTop, setIsCheckingOnTop] = useState(true);
+  const cardAnimationValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchWalletData();
@@ -90,13 +93,11 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
     }
   };
 
-  const activeWallet = wallets.find(
-    (w) => w.type === selectedCrypto && w.isActive
-  );
-
   const handleRefresh = async () => {
     await loadWalletData();
   };
+
+  const activeWallet = wallets.find((w) => w.type === selectedCrypto) || {};
 
   const handleWalletChange = (itemValue) => {
     Animated.parallel([
@@ -129,6 +130,16 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
     });
   };
 
+  const handleCardSwitch = () => {
+    Animated.timing(cardAnimationValue, {
+      toValue: isCheckingOnTop ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => {
+      setIsCheckingOnTop(!isCheckingOnTop);
+    });
+  };
+
   const renderActionButton = (title, iconName, onPress) => (
     <TouchableOpacity
       style={[styles.actionButton, { backgroundColor: colors.card }]}
@@ -144,6 +155,36 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
   const gradientColors = isDarkMode
     ? [colors.background, colors.primary + "44"]
     : [colors.background, colors.primary + "22"];
+
+  const checkingCardStyle = {
+    zIndex: cardAnimationValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [2, 1],
+    }),
+    transform: [
+      {
+        translateY: cardAnimationValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 20],
+        }),
+      },
+    ],
+  };
+
+  const savingsCardStyle = {
+    zIndex: cardAnimationValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 2],
+    }),
+    transform: [
+      {
+        translateY: cardAnimationValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: [-160, -180],
+        }),
+      },
+    ],
+  };
 
   return (
     <LinearGradient colors={gradientColors} style={styles.container}>
@@ -177,7 +218,63 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
           ))}
         </View> */}
 
-        <Text style={styles.title}>Welcome!</Text>
+        <Text style={[styles.welcomeText, { color: colors.text }]}>
+          Let's Bump{" "}{" "}
+          <View style={styles.walletSelectorContainer}>
+            <CurrencySelector
+              selectedCrypto={selectedCrypto}
+              onSelect={handleWalletChange}
+              // onSelect={() => {
+              //   const cryptos = ["bitcoin", "lightning", "litecoin"];
+              //   const currentIndex = cryptos.indexOf(selectedCrypto);
+              //   const nextIndex = (currentIndex + 1) % cryptos.length;
+              //   setSelectedCrypto(cryptos[nextIndex]);
+              // }}
+            />
+          </View>
+        </Text>
+
+        <TouchableOpacity
+          onPress={handleCardSwitch}
+          style={styles.cardsContainer}
+        >
+          <Animated.View style={checkingCardStyle}>
+            <WalletCard
+              type={selectedCrypto}
+              balance={(parseFloat(activeWallet.balance || "0") * 0.1).toFixed(
+                2
+              )}
+              address={activeWallet.address || ""}
+              currency={
+                selectedCrypto === "bitcoin"
+                  ? "BTC"
+                  : selectedCrypto === "lightning"
+                  ? "SATS"
+                  : "LTC"
+              }
+              label="CHECKING"
+            />
+          </Animated.View>
+
+          <Animated.View style={savingsCardStyle}>
+            <WalletCard
+              type={selectedCrypto}
+              balance={(parseFloat(activeWallet.balance || "0") * 0.1).toFixed(
+                2
+              )}
+              address={activeWallet.address || ""}
+              currency={
+                selectedCrypto === "bitcoin"
+                  ? "BTC"
+                  : selectedCrypto === "lightning"
+                  ? "SATS"
+                  : "LTC"
+              }
+              label="SAVINGS"
+            />
+          </Animated.View>
+        </TouchableOpacity>
+
         {walletInfo && walletInfo.wallets && walletInfo.wallets[0] && (
           <View>
             <Text style={styles.walletInfo}>
@@ -188,87 +285,6 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
             </Text>
           </View>
         )}
-
-        <View style={styles.cardsContainer}>
-          {wallets && wallets.length > 0 ? (
-            wallets.map((wallet, index) => (
-              <>
-                <WalletCard
-                  key={index}
-                  type={wallet.type}
-                  balance={wallet.balance}
-                  address={wallet.address}
-                  currency={
-                    selectedWallet === "bitcoin"
-                      ? "BTC"
-                      : selectedWallet === "lightning"
-                      ? "SATS"
-                      : "LTC"
-                  }
-                />
-                <View style={styles.savingsCardPlaceholder}>
-                  {/* Placeholder for future savings card */}
-                </View>
-              </>
-            ))
-          ) : (
-            <View style={styles.createWalletContainer}>
-              <Text style={[styles.createWalletText, { color: colors.text }]}>
-                No wallet found
-              </Text>
-              <Button
-                title="Create Wallet"
-                onPress={() => navigation.navigate("Settings")}
-              />
-            </View>
-          )}
-        </View>
-
-        <View style={styles.walletSelectorContainer}>
-          <CurrencySelector
-            selectedCrypto={selectedCrypto}
-            onSelect={handleWalletChange}
-            // onSelect={() => {
-            //   const cryptos = ["bitcoin", "lightning", "litecoin"];
-            //   const currentIndex = cryptos.indexOf(selectedCrypto);
-            //   const nextIndex = (currentIndex + 1) % cryptos.length;
-            //   setSelectedCrypto(cryptos[nextIndex]);
-            // }}
-          />
-        </View>
-        {/* <View>
-      <Text>Address: {wallet.address}</Text>
-      <Text>Balance: {wallet.balance} BTC</Text>
-      <Text>Transactions:</Text>
-      <FlatList
-        data={transactions}
-        keyExtractor={(item) => item.txid}
-        renderItem={({ item }) => (
-          <Text>{item.type}: {item.amount} BTC to {item.address}</Text>
-        )}
-      />
-    </View> */}
-        <Animated.View
-          style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-        >
-            <BalanceDisplay
-            type={selectedWallet}
-            balance={
-              wallets.find((w) => w.type === selectedWallet)?.balance || 0
-            }
-            currency={
-              selectedWallet === "bitcoin"
-                ? "BTC"
-                : selectedWallet === "lightning"
-                ? "sat"
-                : "LTC"
-            }
-            address={
-              wallets.find((w) => w.type === selectedWallet)?.address || ""
-            }
-            />
-
-        </Animated.View>
 
         <View style={styles.buttonContainer}>
           {renderActionButton("Send", "send", () =>
@@ -319,7 +335,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 4,
   },
   title: {
     fontSize: 24,
@@ -332,8 +348,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardsContainer: {
-    marginTop: 20,
-    alignItems: "center",
+    marginBottom: 40,
+    padding: 10,
+    height: 200, // Adjust this value based on your card height
   },
   savingsCardPlaceholder: {
     height: 180,
@@ -382,6 +399,12 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     marginHorizontal: 5,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginLeft: 10,
+    marginBottom: 20,
   },
   actionButton: {
     alignItems: "center",

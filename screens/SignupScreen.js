@@ -24,6 +24,7 @@ const SignupScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [bitcoinAddress, setBitcoinAddress] = useState("tb1q7yqz9q86ajpfmw6u8dl5ma66hxwattmh9q9l0x");
   const [createBitcoin, setCreateBitcoin] = useState(false);
   const [createLitecoin, setCreateLitecoin] = useState(false);
   const [createLightning, setCreateLightning] = useState(false);
@@ -95,6 +96,11 @@ const SignupScreen = ({ navigation }) => {
         username,
         email,
         password,
+        wallets: [
+          { type: "bitcoin", address: bitcoinAddress, balance: "0.00000" },
+          { type: "lightning", address: "sample_lightning_address", balance: "0" },
+          { type: "litecoin", address: "sample_litecoin_address", balance: "0.00" }
+        ]
       });
       console.log("Signup successful:", response.data);
       await login(response.data.token);
@@ -190,6 +196,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 10,
+  },
+  addressContainer: {
+    marginVertical: 20,
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+  },
+  addressLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  addressText: {
+    fontSize: 14,
   },
   walletOption: {
     flexDirection: "row",

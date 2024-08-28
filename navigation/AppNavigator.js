@@ -21,6 +21,7 @@ import ContactDetailsScreen from "../screens/ContactDetailsScreen";
 import AddContactScreen from "../screens/AddContactScreen";
 import EditContactScreen from "../screens/EditContactScreen";
 import WelcomeScreen from "../screens/WelcomeScreen";
+import CreateWalletScreen from '../screens/CreateWalletScreen';
 import { WalletContext } from "../contexts/WalletContext";
 
 const Stack = createStackNavigator();
@@ -70,6 +71,7 @@ const MainStack = () => {
         name="TransactionStatus"
         component={TransactionStatusScreen}
       />
+      <Stack.Screen name="CreateWallet" component={CreateWalletScreen} />
       <Drawer.Screen name="Security" component={SecurityScreen} />
       <Drawer.Screen name="Contacts" component={ContactsStack} />
       <Drawer.Screen name="Settings" component={SettingsScreen} />
