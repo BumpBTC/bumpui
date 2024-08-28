@@ -1,22 +1,26 @@
-import { Buffer } from 'buffer';
+import { Buffer } from "buffer";
 global.Buffer = global.Buffer || Buffer;
 
 import React, { createContext, useState, useEffect, useCallback } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from "../services/api";
-import { removeToken } from '../services/auth';
+import { removeToken } from "../services/auth";
 import { getToken } from "../services/auth";
-import * as bip39 from 'bip39';
+import * as bip39 from "bip39";
 // import * as bitcoin from 'bitcoinjs-lib';
-import * as bip32 from 'bip32';
+import * as bip32 from "bip32";
 
 export const WalletContext = createContext();
 
 export const WalletProvider = ({ children }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [wallet, setWallet] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [balance, setBalance] = useState(0);
+  const [address, setAddress] = useState("");
   const [btcAddress, setBtcAddress] = useState("");
   const [ltcAddress, setLtcAddress] = useState("");
   const [taprootAddress, setTaprootAddress] = useState("");
@@ -27,26 +31,59 @@ export const WalletProvider = ({ children }) => {
   const [exchangeRates, setExchangeRates] = useState({});
   const [selectedCrypto, setSelectedCrypto] = useState("bitcoin");
 
+  const checkLoginStatus = async () => {
+    const token = await AsyncStorage.getItem('userToken');
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setIsLoggedIn(true);
+      await fetchWalletData();
+    }
+  };
+
+  const login = async (token) => {
+    await AsyncStorage.setItem('userToken', token);
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    setIsLoggedIn(true);
+    fetchWalletData();
+  };
+
   const fetchWalletData = useCallback(async () => {
+    if (isLoggedIn) {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          setError("No token found. Please log in.");
+          setIsLoading(false);
+          return;
+        }
+        const response = await api.get("/wallet/info");
+        setWallets(response.data.wallets || []);
+        setTransactions(response.data.transactions || []);
+        setSelectedCrypto(response.data.activeWallet);
+      } catch (error) {
+        console.error("Failed to fetch wallet data:", error);
+        setError(
+          error.response?.data?.error ||
+            "Failed to fetch wallet data. Please try again."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, [isLoggedIn]);
+
+  const fetchWalletInfo = useCallback(async () => {
     try {
       setIsLoading(true);
-      setError(null);
-      const token = await getToken();
-      if (!token) {
-        setError("No token found. Please log in.");
-        setIsLoading(false);
-        return;
-      }
       const response = await api.get("/wallet/info");
-      setWallets(response.data.wallets || []);
-      setTransactions(response.data.transactions || []);
+      setWallets(response.data.wallets);
+      setTransactions(response.data.transactions);
+      setIsLoading(false);
     } catch (error) {
-      console.error("Failed to fetch wallet data:", error);
-      setError(
-        error.response?.data?.error ||
-          "Failed to fetch wallet data. Please try again."
-      );
-    } finally {
+      console.error("Failed to fetch wallet info:", error);
+      setError(error.response?.data?.error || "Failed to fetch wallet info");
       setIsLoading(false);
     }
   }, []);
@@ -64,7 +101,10 @@ export const WalletProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      await AsyncStorage.removeItem('userToken');
+      delete api.defaults.headers.common['Authorization'];
       await removeToken();
+      setIsLoggedIn(false);
       setWallets([]);
       setTransactions([]);
       setError(null);
@@ -74,11 +114,23 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
+  const setActiveWallet = async (type, walletId) => {
+    try {
+      const response = await api.post('/wallet/set-active', { type, walletId });
+      await fetchWalletData();
+      return response.data;
+    } catch (error) {
+      console.error('Failed to set active wallet:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
+    checkLoginStatus();
     fetchWalletData();
-    generateAddresses();
+    // generateAddresses();
     fetchExchangeRates();
-    const interval = setInterval(fetchExchangeRates, 60000); // Update every minute
+    const interval = setInterval(fetchExchangeRates, 300000); // Update every 5 minutes
     return () => clearInterval(interval);
   }, [fetchWalletData, fetchExchangeRates]);
 
@@ -104,28 +156,48 @@ export const WalletProvider = ({ children }) => {
     [exchangeRates]
   );
 
-  const generateAddresses = useCallback(async () => {
+  const createWallet = async (type) => {
     try {
-      const response = await api.post("/wallet/generate-addresses");
-      setBtcAddress(response.data.btcAddress);
-      setLtcAddress(response.data.ltcAddress);
-      setTaprootAddress(response.data.taprootAddress);
-      setMnemonic(response.data.mnemonic);
+      setIsLoading(true);
+      const response = await api.post('/wallet/create', { type: 'bitcoin' });
+      setWallet(response.data.wallet);
+      await fetchWalletData();
+      // Automatically set the new wallet as active
+      await setActiveWallet(type, response.data.wallet.id);
+      setIsLoading(false);
+      return response.data;
     } catch (error) {
-      console.error("Error generating addresses:", error);
+      console.error('Failed to create wallet:', error);
+      throw error;
     }
-  }, []);
+  };
+
+  // const generateAddresses = useCallback(async () => {
+  //   try {
+  //     const response = await api.post("/wallet/generate-addresses");
+  //     setBtcAddress(response.data.btcAddress);
+  //     setLtcAddress(response.data.ltcAddress);
+  //     setTaprootAddress(response.data.taprootAddress);
+  //     setMnemonic(response.data.mnemonic);
+  //   } catch (error) {
+  //     console.error("Error generating addresses:", error);
+  //   }
+  // }, []);
 
   const sendBitcoin = async (toAddress, amount) => {
     try {
+      setIsLoading(true);
       const response = await api.post("/wallet/send-bitcoin", {
         toAddress,
         amount,
       });
-      await fetchWalletData();
+      await fetchWalletInfo(); // Refresh wallet info after sending
+      setIsLoading(false);
       return response.data;
     } catch (error) {
       console.error("Failed to send Bitcoin:", error);
+      setError(error.response?.data?.error || "Failed to send Bitcoin");
+      setIsLoading(false);
       throw error;
     }
   };
@@ -361,14 +433,19 @@ export const WalletProvider = ({ children }) => {
   return (
     <WalletContext.Provider
       value={{
+        wallet,
         wallets,
+        setWallets,
         transactions,
-        fetchWalletData,
         isLoading,
+        isLoggedIn,
         error,
+        fetchWalletData,
         sendBitcoin,
         sendTransaction,
         sendLightning,
+        createWallet,
+        setActiveWallet,
         createLightningWallet,
         createLightningChannel,
         importLightningWallet,
@@ -385,9 +462,12 @@ export const WalletProvider = ({ children }) => {
         channelCreationProgress,
         selectedCrypto,
         setSelectedCrypto,
+        fetchWalletInfo,
         balance,
+        login,
         logout,
-        generateAddresses,
+        checkLoginStatus,
+        // generateAddresses,
         btcAddress,
         ltcAddress,
         taprootAddress,

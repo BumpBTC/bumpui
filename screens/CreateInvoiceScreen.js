@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Alert, View, Text, StyleSheet, Switch, TextInput } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { WalletContext } from '../contexts/WalletContext';

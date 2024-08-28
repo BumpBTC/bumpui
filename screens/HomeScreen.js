@@ -3,11 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   ScrollView,
   RefreshControl,
   TouchableOpacity,
   Animated,
 } from "react-native";
+import WalletCard from "../components/WalletCard";
 import { useTheme } from "../contexts/ThemeContext";
 import { WalletContext } from "../contexts/WalletContext";
 import BalanceDisplay from "../components/BalanceDisplay";
@@ -18,32 +20,82 @@ import CurrencySelector from "../components/CurrencySelector";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Animatable from "react-native-animatable";
+import { getWalletInfo } from "../services/api";
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, balance, address, route }) => {
+  // const { user } = route.params;
   const { colors, isDarkMode, setWalletTheme } = useTheme();
+  const [isLoading, setIsLoading] = useState(false);
+  const [walletInfo, setWalletInfo] = useState(null);
   const {
     selectedCrypto,
     setSelectedCrypto,
+    wallet,
     wallets,
     transactions,
+    createWallet,
+    fetchWalletInfo,
     fetchWalletData,
-    isLoading,
     error,
   } = useContext(WalletContext);
-
   const [selectedWallet, setSelectedWallet] = useState("bitcoin");
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      fetchWalletData();
-    });
-    return unsubscribe;
-  }, [navigation, fetchWalletData]);
-
-  const handleRefresh = () => {
     fetchWalletData();
+    loadWalletData();
+    const fetchWalletInfo = async () => {
+      try {
+        const info = await getWalletInfo();
+        setWalletInfo(info);
+      } catch (error) {
+        console.error("Error fetching wallet info:", error);
+      }
+    };
+    fetchWalletInfo();
+  }, []);
+
+  // useEffect(() => {
+  //   const unsubscribe = navigation.addListener("focus", () => {
+  //     fetchWalletData();
+  //   });
+  //   return unsubscribe;
+  // }, [navigation, fetchWalletData]);
+
+  // useEffect(() => {
+  //   const active = wallets.find((wallet) => wallet.isActive);
+  //   setActiveWallet(active);
+  // }, [wallets]);
+
+  const loadWalletData = async () => {
+    setIsLoading(true);
+    try {
+      await fetchWalletData();
+      const info = await getWalletInfo();
+      setWalletInfo(info);
+    } catch (error) {
+      console.error("Error loading wallet data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateWallet = async () => {
+    try {
+      await createWallet(selectedCrypto);
+      await loadWalletData();
+    } catch (error) {
+      console.error("Failed to create wallet:", error);
+    }
+  };
+
+  const activeWallet = wallets.find(
+    (w) => w.type === selectedCrypto && w.isActive
+  );
+
+  const handleRefresh = async () => {
+    await loadWalletData();
   };
 
   const handleWalletChange = (itemValue) => {
@@ -97,11 +149,7 @@ const HomeScreen = ({ navigation }) => {
     <LinearGradient colors={gradientColors} style={styles.container}>
       <ScrollView
         refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={handleRefresh}
-            colors={[colors.primary]}
-          />
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
         }
       >
         {error && (
@@ -112,22 +160,98 @@ const HomeScreen = ({ navigation }) => {
           </Animatable.View>
         )}
 
+        {/* <View style={styles.walletSelector}>
+          {wallets.map((wallet) => (
+            <TouchableOpacity
+              key={wallet.type}
+              style={[
+                styles.walletOption,
+                selectedCrypto === wallet.type && styles.selectedWallet,
+              ]}
+              onPress={() => setSelectedCrypto(wallet.type)}
+            >
+              <Text style={[styles.walletOptionText, { color: colors.text }]}>
+                {wallet.type.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View> */}
+
+        <Text style={styles.title}>Welcome!</Text>
+        {walletInfo && walletInfo.wallets && walletInfo.wallets[0] && (
+          <View>
+            <Text style={styles.walletInfo}>
+              Bitcoin Address: {walletInfo.wallets[0].address}
+            </Text>
+            <Text style={styles.walletInfo}>
+              Balance: {walletInfo.wallets[0].balance} BTC
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.cardsContainer}>
+          {wallets && wallets.length > 0 ? (
+            wallets.map((wallet, index) => (
+              <>
+                <WalletCard
+                  key={index}
+                  type={wallet.type}
+                  balance={wallet.balance}
+                  address={wallet.address}
+                  currency={
+                    selectedWallet === "bitcoin"
+                      ? "BTC"
+                      : selectedWallet === "lightning"
+                      ? "SATS"
+                      : "LTC"
+                  }
+                />
+                <View style={styles.savingsCardPlaceholder}>
+                  {/* Placeholder for future savings card */}
+                </View>
+              </>
+            ))
+          ) : (
+            <View style={styles.createWalletContainer}>
+              <Text style={[styles.createWalletText, { color: colors.text }]}>
+                No wallet found
+              </Text>
+              <Button
+                title="Create Wallet"
+                onPress={() => navigation.navigate("Settings")}
+              />
+            </View>
+          )}
+        </View>
+
         <View style={styles.walletSelectorContainer}>
           <CurrencySelector
             selectedCrypto={selectedCrypto}
-            onSelect={() => {
-              const cryptos = ["bitcoin", "lightning", "litecoin"];
-              const currentIndex = cryptos.indexOf(selectedCrypto);
-              const nextIndex = (currentIndex + 1) % cryptos.length;
-              setSelectedCrypto(cryptos[nextIndex]);
-            }}
+            onSelect={handleWalletChange}
+            // onSelect={() => {
+            //   const cryptos = ["bitcoin", "lightning", "litecoin"];
+            //   const currentIndex = cryptos.indexOf(selectedCrypto);
+            //   const nextIndex = (currentIndex + 1) % cryptos.length;
+            //   setSelectedCrypto(cryptos[nextIndex]);
+            // }}
           />
         </View>
-
+        {/* <View>
+      <Text>Address: {wallet.address}</Text>
+      <Text>Balance: {wallet.balance} BTC</Text>
+      <Text>Transactions:</Text>
+      <FlatList
+        data={transactions}
+        keyExtractor={(item) => item.txid}
+        renderItem={({ item }) => (
+          <Text>{item.type}: {item.amount} BTC to {item.address}</Text>
+        )}
+      />
+    </View> */}
         <Animated.View
           style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         >
-          <BalanceDisplay
+            <BalanceDisplay
             type={selectedWallet}
             balance={
               wallets.find((w) => w.type === selectedWallet)?.balance || 0
@@ -142,7 +266,8 @@ const HomeScreen = ({ navigation }) => {
             address={
               wallets.find((w) => w.type === selectedWallet)?.address || ""
             }
-          />
+            />
+
         </Animated.View>
 
         <View style={styles.buttonContainer}>
@@ -181,7 +306,7 @@ const HomeScreen = ({ navigation }) => {
 
         <TransactionList
           transactions={transactions.filter(
-            (t) => t.walletType === selectedWallet
+            (t) => t.walletType === selectedCrypto
           )}
         />
       </ScrollView>
@@ -192,6 +317,31 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    alignItems: "center",
+  },
+  cardsContainer: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  savingsCardPlaceholder: {
+    height: 180,
+    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 20,
+    marginTop: -160,
+    zIndex: -1,
   },
   errorContainer: {
     padding: 10,
@@ -204,19 +354,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   walletSelectorContainer: {
-    marginVertical: 10,
+    marginVertical: 14,
     borderRadius: 10,
+    alignItems: "center",
     overflow: "hidden",
   },
-  walletSelector: {
-    height: 50,
-    width: "100%",
+  walletOption: {
+    padding: 10,
+    borderRadius: 20,
+  },
+  selectedWallet: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
+  walletOptionText: {
+    fontWeight: "bold",
+  },
+  walletInfo: {
+    fontSize: 16,
+    marginBottom: 10,
   },
   buttonContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
     padding: 10,
+  },
+  button: {
+    flex: 1,
+    marginHorizontal: 5,
   },
   actionButton: {
     alignItems: "center",
@@ -246,6 +411,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderRadius: 30,
+  },
+  createWalletContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  createWalletText: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  input: {
+    width: "100%",
+    height: 40,
+    borderColor: "gray",
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  switchContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 10,
+  },
+  loginLink: {
+    marginTop: 20,
+    color: "blue",
+  },
+  signupLink: {
+    marginTop: 20,
+    color: "blue",
+  },
+  address: {
+    marginTop: 10,
+    fontSize: 16,
   },
 });
 

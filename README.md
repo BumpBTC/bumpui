@@ -230,6 +230,22 @@ Clear cache
 
  { username: 'tester2', email: 'tester2@test.com', password: 'abc123' }
 
+ {
+    "message": "bitcoin wallet created successfully",
+    "wallet": {
+        "type": "bitcoin",
+        "address": "tb1qjtkk5rrzpyl7p9qlzqazh5zmlwwynzq0l0yv49",
+        "publicKey": "02b65d8c1ee46ba4f21100fc058d2f708eb6122cf921de682208f73e395a49615d",
+        "privateKey": "819bf7b908ccf2e5258a4e182de03930e598a851c02f54066244a555810fae59",
+        "mnemonic": "say control pioneer dawn wire ketchup street broom answer segment ice fault",
+        "isActive": true
+    }
+}
+
+---
+
+ testgaff | gaFFNEY311@outlook.com | 123
+
  ---
  
 email
