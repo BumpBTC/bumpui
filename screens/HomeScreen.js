@@ -23,6 +23,7 @@ import * as Animatable from "react-native-animatable";
 import { getWalletInfo } from "../services/api";
 import PriceTicker from "../components/PriceTicker";
 
+
 const HomeScreen = ({ navigation, balance, address, route }) => {
   // const { user } = route.params;
   const { colors, isDarkMode, setWalletTheme } = useTheme();
@@ -417,7 +418,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
     marginLeft: 10,
+    fontStyle: 'italic',
     marginBottom: 20,
+
   },
   actionButton: {
     alignItems: "center",

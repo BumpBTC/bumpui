@@ -419,6 +419,47 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
+  const createNfcChannel = async () => {
+    try {
+      const response = await api.post("/lightning/create-nfc-channel");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create NFC channel:", error);
+      throw error;
+    }
+  };
+
+  const getNfcChannelBalance = async () => {
+    try {
+      const response = await api.get("/lightning/nfc-channel-balance");
+      return response.data.balance;
+    } catch (error) {
+      console.error("Failed to get NFC channel balance:", error);
+      throw error;
+    }
+  };
+
+  const createNfcInvoice = async (amount, description) => {
+    try {
+      const response = await api.post("/lightning/create-nfc-invoice", { amount, description });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create NFC invoice:", error);
+      throw error;
+    }
+  };
+
+  const payNfcInvoice = async (paymentRequest) => {
+    try {
+      const response = await api.post("/lightning/pay-nfc-invoice", { paymentRequest });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to pay NFC invoice:", error);
+      throw error;
+    }
+  };
+
+
   const backupWallet = async () => {
     try {
       const response = await api.get("/wallet/backup");
@@ -492,6 +533,10 @@ export const WalletProvider = ({ children }) => {
         getTransactionHistory,
         convertAmount,
         exchangeRates,
+        createNfcChannel,
+        getNfcChannelBalance,
+        createNfcInvoice,
+        payNfcInvoice,
         backupWallet,
         restoreWallet,
       }}

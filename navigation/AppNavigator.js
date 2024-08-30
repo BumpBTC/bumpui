@@ -21,23 +21,32 @@ import ContactDetailsScreen from "../screens/ContactDetailsScreen";
 import AddContactScreen from "../screens/AddContactScreen";
 import EditContactScreen from "../screens/EditContactScreen";
 import WelcomeScreen from "../screens/WelcomeScreen";
-import CreateWalletScreen from '../screens/CreateWalletScreen';
-import BlockchainCredentialsScreen from '../screens/BlockchainCredentialsScreen';
-import EmailBackupScreen from '../screens/EmailBackupScreen';
-import PhoneBackupScreen from '../screens/PhoneBackupScreen';
-import MFAScreen from '../screens/MFAScreen';
-import GoogleAuthScreen from '../screens/GoogleAuthSetupScreen';
-import HardwareKeyScreen from '../screens/HardwareKeyBackupScreen';
-import BiometricsScreen from '../screens/BiometricsSetupScreen';
+import CreateWalletScreen from "../screens/CreateWalletScreen";
+import BlockchainCredentialsScreen from "../screens/BlockchainCredentialsScreen";
+import EmailBackupScreen from "../screens/EmailBackupScreen";
+import PhoneBackupScreen from "../screens/PhoneBackupScreen";
+import MFAScreen from "../screens/MFAScreen";
+import GoogleAuthScreen from "../screens/GoogleAuthSetupScreen";
+import HardwareKeyScreen from "../screens/HardwareKeyBackupScreen";
+import BiometricsScreen from "../screens/BiometricsSetupScreen";
+import BuyBitcoinScreen from "../screens/BuyBitcoinScreen";
 import { WalletContext } from "../contexts/WalletContext";
+import TransactionHistoryScreen from '../screens/TransactionHistoryScreen';
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import * as Animatable from "react-native-animatable";
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
+const AnimatedIcon = Animatable.createAnimatableComponent(Icon);
+
 const SecurityStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="SecurityOverview" component={SecurityScreen} />
-    <Stack.Screen name="BlockchainCredentials" component={BlockchainCredentialsScreen} />
+    <Stack.Screen
+      name="BlockchainCredentials"
+      component={BlockchainCredentialsScreen}
+    />
     <Stack.Screen name="EmailBackup" component={EmailBackupScreen} />
     <Stack.Screen name="PhoneBackup" component={PhoneBackupScreen} />
     <Stack.Screen name="MFA" component={MFAScreen} />
@@ -48,7 +57,7 @@ const SecurityStack = () => (
 );
 
 const ContactsStack = () => (
-<Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Contacts" component={ContactsScreen} />
     <Stack.Screen name="ContactDetails" component={ContactDetailsScreen} />
     <Stack.Screen name="AddContact" component={AddContactScreen} />
@@ -57,7 +66,7 @@ const ContactsStack = () => (
 );
 
 const SettingsStack = () => (
-<Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Drawer.Screen name="Security" component={SecurityScreen} />
     <Stack.Screen name="Contacts" component={ContactsScreen} />
@@ -91,6 +100,7 @@ const MainStack = () => {
         name="TransactionStatus"
         component={TransactionStatusScreen}
       />
+      <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
       <Stack.Screen name="CreateWallet" component={CreateWalletScreen} />
       <Stack.Screen name="Security" component={SecurityStack} />
       <Drawer.Screen name="Contacts" component={ContactsStack} />
@@ -106,17 +116,105 @@ const MainDrawer = () => {
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
+        headerStyle: {
+          backgroundColor: colors.primary,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
         headerTintColor: colors.background,
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
         drawerStyle: { backgroundColor: colors.background },
         drawerLabelStyle: { color: colors.text },
+        drawerActiveTintColor: colors.primary,
+        drawerInactiveTintColor: colors.text,
       }}
     >
-      <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Send" component={SendScreen} />
-      <Drawer.Screen name="Receive" component={ReceiveScreen} />
-      <Drawer.Screen name="Bump Pay" component={NFCPayScreen} />
-      <Drawer.Screen name="Shop" component={ShopScreen} />
+      <Drawer.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <AnimatedIcon
+              animation="bounceIn"
+              name="home"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Send"
+        component={SendScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <AnimatedIcon
+              animation="bounceIn"
+              name="send"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Receive"
+        component={ReceiveScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <AnimatedIcon
+              animation="bounceIn"
+              name="qrcode"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Bump Pay"
+        component={NFCPayScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <AnimatedIcon
+              animation="bounceIn"
+              name="nfc"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <AnimatedIcon
+              animation="bounceIn"
+              name="shopping"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Buy Bitcoin"
+        component={BuyBitcoinScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <AnimatedIcon
+              animation="bounceIn"
+              name="bitcoin"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
     </Drawer.Navigator>
   );
 };

@@ -13,10 +13,10 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useTheme } from "../contexts/ThemeContext";
-import { Badge } from 'react-native-elements';
+import { Badge } from "react-native-elements";
 import { WalletContext } from "../contexts/WalletContext";
 import { Input } from "react-native-elements";
-import Button from "../components/Button"
+import Button from "../components/Button";
 import LottieView from "lottie-react-native";
 import api from "../services/api";
 import { LinearGradient } from "expo-linear-gradient";
@@ -164,9 +164,9 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const getBadgeStatus = (level) => {
-    if (level >= 6) return 'success';
-    if (level >= 3) return 'warning';
-    return 'error';
+    if (level >= 6) return "success";
+    if (level >= 3) return "warning";
+    return "error";
   };
 
   const handleShowAccountDetails = () => {
@@ -251,10 +251,27 @@ const SettingsScreen = ({ navigation }) => {
                   }}
                   style={styles.modalButton}
                 />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                 OR
+                </Text>
+                <Input
+                  placeholder="Enter private key"
+                  // value={importMnemonic}
+                  // onChangeText={setImportMnemonic}
+                  multiline
+                />
+                <Button
+                  title="Import"
+                  onPress={() => {
+                    // setImportType(type);
+                    // handleImportWallet();
+                  }}
+                  style={styles.modalButton}
+                />
                 <Button
                   title="Cancel"
                   onPress={() => setModalVisible(false)}
-                  style={styles.modalButton}
+                  style={styles.modalButton2}
                 />
               </View>
             );
@@ -289,10 +306,12 @@ const SettingsScreen = ({ navigation }) => {
 
   const renderSecuritySection = () => (
     <View style={styles.securitySection}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Security</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        Security
+      </Text>
       <TouchableOpacity
         style={styles.securityOption}
-        onPress={() => navigation.navigate('SecurityStack')}
+        onPress={() => navigation.navigate("SecurityStack")}
       >
         <Icon name="shield-check" size={24} color={colors.primary} />
         <Text style={[styles.securityOptionText, { color: colors.text }]}>
@@ -363,7 +382,9 @@ const SettingsScreen = ({ navigation }) => {
     <LinearGradient style={styles.container} colors={gradientColors}>
       <ScrollView>
         {" "}
-        <Text style={[styles.title, { color: colors.text }]}>User Settings</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          User Settings
+        </Text>
         <View style={styles.tileContainer}>
           {renderSettingsTile("wallet-plus", "Create Wallet", () => {
             setModalContent(
@@ -397,7 +418,7 @@ const SettingsScreen = ({ navigation }) => {
                 <Button
                   title="Cancel"
                   onPress={() => setModalVisible(false)}
-                  style={styles.modalButton}
+                  style={styles.modalButton2}
                 />
               </View>
             );
@@ -464,7 +485,7 @@ const SettingsScreen = ({ navigation }) => {
                 <Button
                   title="Cancel"
                   onPress={() => setModalVisible(false)}
-                  style={styles.modalButton}
+                  style={styles.modalButton2}
                 />
               </View>
             );
@@ -473,7 +494,7 @@ const SettingsScreen = ({ navigation }) => {
           {renderSettingsTile("shield-check", "Security Settings", () =>
             navigation.navigate("Security")
           )}
-           {renderSecuritySection()}
+          {renderSecuritySection()}
         </View>
         <View style={styles.settingItem}>
           <Text style={[styles.settingText, { color: colors.text }]}>
@@ -522,12 +543,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   securityOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 10,
     borderRadius: 10,
   },
@@ -646,9 +667,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   modalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 25,
@@ -656,10 +677,22 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginRight: 4,
   },
+  modalButton2: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    elevation: 3,
+    marginBottom: 6,
+    marginRight: 4,
+    backgroundColor: 'red'
+  },
   buttonText: {
     marginLeft: 10,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

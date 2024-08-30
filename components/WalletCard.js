@@ -5,7 +5,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-const WalletCard = ({ type, balance, address, currency, label, exchangeRate }) => {
+const WalletCard = ({
+  type,
+  balance,
+  address,
+  currency,
+  label,
+  exchangeRate,
+}) => {
   const [showFullAddress, setShowFullAddress] = useState(false);
   const [showUSD, setShowUSD] = useState(false);
 
@@ -52,7 +59,7 @@ const WalletCard = ({ type, balance, address, currency, label, exchangeRate }) =
     ? address
     : `${address.slice(0, 5)}...${address.slice(-6)}`;
 
-    const displayBalance = showUSD
+  const displayBalance = showUSD
     ? `$${(balance * exchangeRate).toFixed(2)}`
     : `${balance} ${currency}`;
 
@@ -71,7 +78,7 @@ const WalletCard = ({ type, balance, address, currency, label, exchangeRate }) =
 
       <View style={styles.cardContent}>
         <Text style={styles.balanceText}>{displayBalance}</Text>
-          {/* <Switch
+        {/* <Switch
           value={showUSD}
           onValueChange={toggleCurrency}
           trackColor={{ false: "#767577", true: "#81b0ff" }}
@@ -85,11 +92,22 @@ const WalletCard = ({ type, balance, address, currency, label, exchangeRate }) =
           <Text style={styles.addressText}>{address}</Text>
         </TouchableOpacity>
 
-     
         <View style={styles.glowDots}>
-        <TouchableOpacity onPress={copyAddress}>
-          <MaterialCommunityIcons name="content-copy" size={20} color="white" />
-        </TouchableOpacity>
+          <TouchableOpacity onPress={copyAddress}>
+            <MaterialCommunityIcons
+              name="content-copy"
+              size={20}
+              color="white"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={copyAddress}>
+            <TouchableOpacity
+              onPress={displayAddress}
+              style={styles.iconButton}
+            >
+              <MaterialCommunityIcons name="eye" size={20} color="white" />
+            </TouchableOpacity>
+          </TouchableOpacity>
           {[...Array(4)].map((_, i) => (
             <View key={i} style={styles.glowDot} />
           ))}
@@ -136,7 +154,6 @@ const styles = StyleSheet.create({
   balanceContainer: {
     flexDirection: "row",
     justifyContent: "flex-end",
-
   },
   balanceText: {
     flexDirection: "row",
@@ -162,10 +179,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontStyle: 'italic',
-    color: '#fff',
+    fontStyle: "italic",
+    color: "#fff",
     marginTop: 5,
-    marginLeft: 4
+    marginLeft: 4,
   },
 });
 

@@ -1,33 +1,20 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import Button from '../components/Button';
 import CropSquareIcon from '@mui/icons-material/CropSquare';
+import MerchantScreen from './MerchantScreen';
+import ShopperScreen from './ShopperScreen';
+import ShopIntermediaryScreen from './ShopIntermediaryScreen';
 
 const ShopScreen = () => {
-  const { colors } = useTheme();
+  const [userType, setUserType] = useState(null);
 
-  return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+  if (!userType) {
+    return <ShopIntermediaryScreen onSelect={setUserType} />;
+  }
 
-        <CropSquareIcon    style={styles.logo}
-        resizeMode="contain" />
-      <Text style={[styles.title, { color: colors.text }]}>Shop with Square</Text>
-      <Text style={[styles.description, { color: colors.text }]}>
-        Use your Bitcoin, Lightning, or Litecoin to shop at millions of merchants worldwide with Square integration.
-      </Text>
-      <Button 
-        title="Connect Square Account" 
-        onPress={() => {/* Implement Square account connection */}}
-        style={styles.button}
-      />
-      <Button 
-        title="Browse Merchants" 
-        onPress={() => {/* Implement merchant browsing */}}
-        style={styles.button}
-      />
-    </ScrollView>
-  );
+  return userType === 'merchant' ? <MerchantScreen /> : <ShopperScreen />;
 };
 
 const styles = StyleSheet.create({
@@ -53,6 +40,21 @@ const styles = StyleSheet.create({
   },
   button: {
     marginBottom: 10,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  gridItem: {
+    width: '48%',
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  partnerText: {
+    textAlign: 'center',
   },
 });
 
