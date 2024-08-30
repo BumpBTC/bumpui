@@ -1,6 +1,80 @@
-# Glu App UI Repo
+# BumpBTC Wallet
 
-## 1 | Description
+![bumpbtc logo](/src/assets/bumpbtc.png)
+
+Accept and Send Bitcoin Payments with a Bump 📱💥
+
+Bump BTC Wallet is a free and open-source Bitcoin wallet that allows you to send and receive bitcoin payments using NFC technology, without fees or intermediaries.
+
+[Website](https://bumpbtc.com) | [Mobile App](app.bumpbtc.com)  | [API](api.bumpbtc.com) |  [Documentation](#)
+
+"The future of Bitcoin payments is here. Just Bump and Go!"
+
+[View Demo](#)
+
+## 💼 Table of Contents
+
+- [Features](#-features)
+- [Getting Started](#-getting-started)
+- [Documentation](#-documentation)
+
+## 🎨 Features
+
+- Direct, peer-to-peer Bitcoin payments using NFC technology
+- Lightning Network support for instant transactions
+- Multi-currency support (Bitcoin, Litecoin, with USDC and more coming soon)
+- Non-custodial (complete control over your private keys)
+- Use all your Bitcoin wallets in one place with our Wallet Connector
+- Enhanced privacy & security with advanced encryption and backup
+- Point of sale functionality
+- SegWit & Taproot support
+- Multi-factor authentication
+- Invoice management and payment requests
+- Bitcoin and Litecoin support, with more cryptocurrencies planned
+
+## 🚀 Getting Started
+
+1. Download the Bump BTC Wallet app from the bumpbtc.com website.
+2. Create a new account with only a username and password.
+3. Add funds to your wallet by purchasing through our partners or importing your existing Bitcoin.
+4. Start making payments by simply bumping your phone with another Bump Wallet user, any compatible NFC device, or use with any merchant that accepts Bitcoin or Lightning.
+
+For detailed instructions, check out our [getting started guide](#) and [walkthrough](#).
+
+## 📗 Documentation
+
+Please check out our [official website](https://bumpbtc.com), [complete documentation](#), and [FAQ](#) for more details.
+
+If you have trouble using BumpBTC Wallet, consider joining our [community chat](#) to get help from other users and contributors.
+
+## 🧑‍💻 Developing
+
+Here's a quick overview of the project structure:
+
+```
+bumpbtc-wallet/
+├── src/
+│   ├── components/     # React Native components
+│   ├── screens/        # App screens
+│   ├── services/       # API and business logic
+│   ├── contexts/       # React contexts
+│   ├── navigation/     # Navigation setup
+│   └── utils/          # Utility functions
+├── server/             # Backend server code
+│   ├── controllers/
+│   ├── models/
+│   ├── routes/
+│   └── services/
+```
+
+### How to Build
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Run the development server: `npm start`
+4. For iOS: `npm run ios`, for Android: `npm run android`
+
+## 1 | Technical Description
 
 Bump BTC Wallet
 
