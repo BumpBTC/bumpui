@@ -121,10 +121,15 @@ const NFCPayScreen = ({ navigation }) => {
 
   const handleAmountChange = (value) => {
     setAmount(value);
-    const btcAmount = parseFloat(value) / exchangeRates.bitcoin.usd;
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      setDisplayAmount({USD: "0", BTC: "0", SATS: "0"});
+      return;
+    }
+    const btcAmount = numValue / exchangeRates.bitcoin.usd;
     const satsAmount = btcAmount * 100000000;
     setDisplayAmount({
-      USD: parseFloat(value).toFixed(2),
+      USD: numValue.toFixed(2),
       BTC: btcAmount.toFixed(8),
       SATS: satsAmount.toFixed(0)
     });
@@ -197,26 +202,25 @@ const NFCPayScreen = ({ navigation }) => {
     }, 3000);
   };
 
-
   const handleSend = () => {
     buttonScale.value = withSpring(0.95, {}, () => {
       buttonScale.value = withSpring(1);
     });
-
+  
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
       setIsComplete(true);
       Alert.alert(
         "Payment Sent",
-        `You've sent ${displayAmount} ${displayCurrency}`,
+        `You've sent ${displayAmount[displayCurrency]} ${displayCurrency}`,
         [
           {
             text: "OK",
             onPress: () => {
               setIsComplete(false);
               setAmount("");
-              setDisplayAmount("0");
+              setDisplayAmount({USD: "0", BTC: "0", SATS: "0"});
               navigation.navigate("NFCPay");
             },
           },
@@ -298,9 +302,9 @@ const NFCPayScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <Reanimated.View style={[styles.displayContainer, rotationStyle]}>
-        <Text style={styles.displayText}>
-          {displayAmount} {displayCurrency}
-        </Text>
+      <Text style={styles.displayText}>
+  {displayAmount[displayCurrency]} {displayCurrency}
+</Text>
         <TouchableOpacity onPress={switchDisplayCurrency}>
           <MaterialCommunityIcons
             name="swap-horizontal"
