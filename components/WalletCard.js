@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Switch } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-const WalletCard = ({ type, balance, address, currency, label }) => {
+const WalletCard = ({ type, balance, address, currency, label, exchangeRate }) => {
   const [showFullAddress, setShowFullAddress] = useState(false);
+  const [showUSD, setShowUSD] = useState(false);
 
   const getGradientColors = () => {
     switch (type) {
@@ -19,6 +20,10 @@ const WalletCard = ({ type, balance, address, currency, label }) => {
       default:
         return ["#4A90E2", "#50E3C2"];
     }
+  };
+
+  const toggleCurrency = () => {
+    setShowUSD(!showUSD);
   };
 
   const getIcon = () => {
@@ -47,6 +52,10 @@ const WalletCard = ({ type, balance, address, currency, label }) => {
     ? address
     : `${address.slice(0, 5)}...${address.slice(-6)}`;
 
+    const displayBalance = showUSD
+    ? `$${(balance * exchangeRate).toFixed(2)}`
+    : `${balance} ${currency}`;
+
   return (
     <LinearGradient
       colors={getGradientColors()}
@@ -61,11 +70,14 @@ const WalletCard = ({ type, balance, address, currency, label }) => {
       </View>
 
       <View style={styles.cardContent}>
-        <View>
-          <Text style={styles.balanceText}>
-            {balance} {currency}
-          </Text>
-        </View>
+        <Text style={styles.balanceText}>{displayBalance}</Text>
+          {/* <Switch
+          value={showUSD}
+          onValueChange={toggleCurrency}
+          trackColor={{ false: "#767577", true: "#81b0ff" }}
+          thumbColor={showUSD ? "#f5dd4b" : "#f4f3f4"}
+        /> */}
+
         <TouchableOpacity
           style={styles.addressContainer}
           onPress={toggleAddressDisplay}
@@ -104,7 +116,7 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     height: 60,
-    paddingStart: 160,
+    paddingStart: 150,
     justifyContent: "space-between",
   },
   addressContainer: {
@@ -130,7 +142,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     color: "white",
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
   },
   glowDots: {
@@ -153,6 +165,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#fff',
     marginTop: 5,
+    marginLeft: 4
   },
 });
 

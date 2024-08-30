@@ -21,6 +21,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Animatable from "react-native-animatable";
 import { getWalletInfo } from "../services/api";
+import PriceTicker from "../components/PriceTicker";
 
 const HomeScreen = ({ navigation, balance, address, route }) => {
   // const { user } = route.params;
@@ -28,6 +29,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [walletInfo, setWalletInfo] = useState(null);
   const [username, setUsername] = useState(false);
+  const { exchangeRates } = useContext(WalletContext);
   const {
     selectedCrypto,
     setSelectedCrypto,
@@ -193,6 +195,12 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
           <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
         }
       >
+        {/* <PriceTicker
+          prices={[
+            { symbol: "BTC", price: exchangeRates.bitcoin?.usd || 0 },
+            { symbol: "LTC", price: exchangeRates.litecoin?.usd || 0 },
+          ]}
+        /> */}
         {error && (
           <Animatable.View animation="shake" style={styles.errorContainer}>
             <Text style={[styles.errorText, { color: colors.error }]}>
@@ -219,7 +227,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
         </View> */}
 
         <Text style={[styles.welcomeText, { color: colors.text }]}>
-          Let's Bump{" "}{" "}
+         Let's Bump{" "}{" "}
           <View style={styles.walletSelectorContainer}>
             <CurrencySelector
               selectedCrypto={selectedCrypto}
@@ -233,6 +241,9 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
             />
           </View>
         </Text>
+
+
+       
 
         <TouchableOpacity
           onPress={handleCardSwitch}
@@ -253,16 +264,17 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
                   : "LTC"
               }
               label="CHECKING"
+              exchangeRate={exchangeRates[selectedCrypto]?.usd || 1}
             />
           </Animated.View>
 
           <Animated.View style={savingsCardStyle}>
             <WalletCard
               type={selectedCrypto}
-              balance={(parseFloat(activeWallet.balance || "0") * 0.1).toFixed(
-                2
-              )}
-              address={activeWallet.address || ""}
+              balance={(
+                parseFloat(selectedCrypto?.balance || "0") * 0.1
+              ).toFixed(2)}
+              address={selectedCrypto?.address || ""}
               currency={
                 selectedCrypto === "bitcoin"
                   ? "BTC"
@@ -271,6 +283,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
                   : "LTC"
               }
               label="SAVINGS"
+              exchangeRate={exchangeRates[selectedCrypto]?.usd || 1}
             />
           </Animated.View>
         </TouchableOpacity>
@@ -285,6 +298,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
             </Text>
           </View>
         )}
+
 
         <View style={styles.buttonContainer}>
           {renderActionButton("Send", "send", () =>
@@ -313,7 +327,7 @@ const HomeScreen = ({ navigation, balance, address, route }) => {
           style={styles.lightningButtonContainer}
         >
           <Button
-            title="⚡ Pay with Lightning Network"
+            title="⚡Pay with Lightning Network"
             onPress={() => navigation.navigate("Lightning")}
             style={styles.lightningButton}
             icon="flash"
@@ -335,7 +349,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 4,
   },
   title: {
     fontSize: 24,
@@ -344,7 +357,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 10,
     alignItems: "center",
   },
   cardsContainer: {
@@ -371,10 +384,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   walletSelectorContainer: {
-    marginVertical: 14,
+    marginTop: 10,
     borderRadius: 10,
-    alignItems: "center",
-    overflow: "hidden",
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
   walletOption: {
     padding: 10,
@@ -401,7 +414,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     marginLeft: 10,
     marginBottom: 20,
@@ -427,7 +440,7 @@ const styles = StyleSheet.create({
   },
   lightningButtonContainer: {
     alignItems: "center",
-    marginVertical: 20,
+    marginBottom: 20,
   },
   lightningButton: {
     backgroundColor: "#9146FF",

@@ -9,10 +9,11 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from "@expo/vector-icons";
 import Input from "../components/Input";
 import Button from "../components/Button";
-import api from "../services/api";
+import { signup, login } from "../services/api";
 import { saveToken } from "../services/auth";
 import { WalletContext } from "../contexts/WalletContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -34,7 +35,7 @@ const SignupScreen = ({ navigation }) => {
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [walletData, setWalletData] = useState(null);
   const [selectedWalletType, setSelectedWalletType] = useState("bitcoin");
-  const { login, setWallets, setSelectedCrypto } = useContext(WalletContext);
+  const { login, setWallets, setSelectedCrypto, fetchWalletData, setIsLoggedIn } = useContext(WalletContext);
   const { colors } = useTheme();
 
   // const handleSignup = async () => {
@@ -86,31 +87,43 @@ const SignupScreen = ({ navigation }) => {
   // };
 
   const handleSignup = async () => {
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
     try {
-      const response = await api.post("/auth/signup", {
-        username,
-        email,
-        password,
-        wallets: [
-          { type: "bitcoin", address: bitcoinAddress, balance: "0.00000" },
-          { type: "lightning", address: "sample_lightning_address", balance: "0" },
-          { type: "litecoin", address: "sample_litecoin_address", balance: "0.00" }
-        ]
-      });
-      console.log("Signup successful:", response.data);
-      await login(response.data.token);
-      setWallets(response.data.user.wallets || []);
-      navigation.navigate("Home"); // Remove the user parameter
+      const data = await signup(username, email, password);
+      await AsyncStorage.setItem('userToken', data.token);
+      setIsLoggedIn(true);
+      fetchWalletData();
     } catch (error) {
-      console.error("Signup error:", error.response?.data || error.message);
-      Alert.alert('Signup Failed', error.response?.data?.error || 'Failed to create account. Please try again.');
+      console.error('Signup failed:', error);
+      // Show error message to user
     }
   };
+
+  // const handleSignup = async () => {
+  //   if (password !== confirmPassword) {
+  //     Alert.alert('Error', 'Passwords do not match');
+  //     return;
+  //   }
+
+  //   try {
+  //     const response = await api.post("/auth/signup", {
+  //       username,
+  //       email,
+  //       password,
+  //       wallets: [
+  //         { type: "bitcoin", address: bitcoinAddress, balance: "0.00000" },
+  //         { type: "lightning", address: "sample_lightning_address", balance: "0" },
+  //         { type: "litecoin", address: "sample_litecoin_address", balance: "0.00" }
+  //       ]
+  //     });
+  //     console.log("Signup successful:", response.data);
+  //     await login(response.data.token);
+  //     setWallets(response.data.user.wallets || []);
+  //     navigation.navigate("Home"); // Remove the user parameter
+  //   } catch (error) {
+  //     console.error("Signup error:", error.response?.data || error.message);
+  //     Alert.alert('Signup Failed', error.response?.data?.error || 'Failed to create account. Please try again.');
+  //   }
+  // };
 
   // const handleBackupComplete = async (backedUp, backupEmail) => {
   //   setShowBackupModal(false);

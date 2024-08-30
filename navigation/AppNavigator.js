@@ -22,13 +22,33 @@ import AddContactScreen from "../screens/AddContactScreen";
 import EditContactScreen from "../screens/EditContactScreen";
 import WelcomeScreen from "../screens/WelcomeScreen";
 import CreateWalletScreen from '../screens/CreateWalletScreen';
+import BlockchainCredentialsScreen from '../screens/BlockchainCredentialsScreen';
+import EmailBackupScreen from '../screens/EmailBackupScreen';
+import PhoneBackupScreen from '../screens/PhoneBackupScreen';
+import MFAScreen from '../screens/MFAScreen';
+import GoogleAuthScreen from '../screens/GoogleAuthSetupScreen';
+import HardwareKeyScreen from '../screens/HardwareKeyBackupScreen';
+import BiometricsScreen from '../screens/BiometricsSetupScreen';
 import { WalletContext } from "../contexts/WalletContext";
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
+const SecurityStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="SecurityOverview" component={SecurityScreen} />
+    <Stack.Screen name="BlockchainCredentials" component={BlockchainCredentialsScreen} />
+    <Stack.Screen name="EmailBackup" component={EmailBackupScreen} />
+    <Stack.Screen name="PhoneBackup" component={PhoneBackupScreen} />
+    <Stack.Screen name="MFA" component={MFAScreen} />
+    <Stack.Screen name="Authenticator" component={GoogleAuthScreen} />
+    <Stack.Screen name="HardwareKey" component={HardwareKeyScreen} />
+    <Stack.Screen name="Biometrics" component={BiometricsScreen} />
+  </Stack.Navigator>
+);
+
 const ContactsStack = () => (
-  <Stack.Navigator>
+<Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Contacts" component={ContactsScreen} />
     <Stack.Screen name="ContactDetails" component={ContactDetailsScreen} />
     <Stack.Screen name="AddContact" component={AddContactScreen} />
@@ -37,7 +57,7 @@ const ContactsStack = () => (
 );
 
 const SettingsStack = () => (
-  <Stack.Navigator>
+<Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Drawer.Screen name="Security" component={SecurityScreen} />
     <Stack.Screen name="Contacts" component={ContactsScreen} />
@@ -72,7 +92,7 @@ const MainStack = () => {
         component={TransactionStatusScreen}
       />
       <Stack.Screen name="CreateWallet" component={CreateWalletScreen} />
-      <Drawer.Screen name="Security" component={SecurityScreen} />
+      <Stack.Screen name="Security" component={SecurityStack} />
       <Drawer.Screen name="Contacts" component={ContactsStack} />
       <Drawer.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>

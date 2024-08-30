@@ -242,7 +242,40 @@ Clear cache
     }
 }
 
+
 ---
+
+curl -X POST http://localhost:5000/api/auth/signup \
+-H "Content-Type: application/json" \
+-d '{"username":"test2424","email":"test2424@test.com","password":"123"}'
+
+curl -X POST http://localhost:5000/api/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username":"test2424","password":"123"}'
+
+curl -X GET http://localhost:5000/api/wallet/info \
+-H "Authorization: Bearer YOUR_TOKEN_HERE"
+
+c0ae9a74e76ee990a517a4ac7795b202ac857ede8a87cd891cf390c6efc4e27c
+
+---
+
+---
+
+8.28
+{
+    "message": "User created successfully",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NmNmYTA3YzI0M2QzNTk5ZWUyOTk5YjEiLCJpYXQiOjE3MjQ4ODMwNjgsImV4cCI6MTcyNTQ4Nzg2OH0.37fUa102uYAzc7v5Bhw71HSTyZ2EZKYkBdPtgYCaI8U",
+    "user": {
+        "wallets": [
+            {
+                "type": "bitcoin",
+                "address": "tb1qqlxnfcunuvz8khngz96v94xkng2rlxymr4g99h",
+                "balance": 0
+            }
+        ]
+    }
+}
 
  testgaff | gaFFNEY311@outlook.com | 123
 

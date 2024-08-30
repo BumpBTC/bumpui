@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback } from "react";
+import React, { useState, useContext, useMemo, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Alert,
   Modal,
 } from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import { Badge } from 'react-native-elements';
 import { useTheme } from "../contexts/ThemeContext";
 import { WalletContext } from "../contexts/WalletContext";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -16,9 +18,11 @@ import Button from "../components/Button";
 import Input from "../components/Input";
 import * as Animatable from "react-native-animatable";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Progress from 'react-native-progress';
 
-const SecurityScreen = ({ navigation }) => {
+const SecurityScreen = ({ }) => {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const { securityLevel, updateSecurityLevel } = useContext(WalletContext);
   const { securitySettings, updateSecuritySettings } = useContext(WalletContext);
   const [modalVisible, setModalVisible] = useState(false);
@@ -30,48 +34,92 @@ const SecurityScreen = ({ navigation }) => {
   const securityOptions = [
     {
       level: 1,
-      name: "Basic",
+      name: "Blockchain Credentials",
       icon: "shield-outline",
-      description: "No web2 connections, only Bitcoin-based identity.",
+      description: "Set up your blockchain-based identity credentials.",
+      screenName: "BlockchainCredentials"
     },
     {
       level: 2,
       name: "Email Backup",
       icon: "email-outline",
-      description: "Adds email-based recovery option.",
+      description: "Add email-based recovery option.",
+      screenName: "EmailBackup"
     },
     {
       level: 3,
       name: "Phone Backup",
       icon: "phone-outline",
-      description: "Adds phone number-based recovery.",
+      description: "Add phone number-based recovery.",
+      screenName: "PhoneBackup"
     },
     {
       level: 4,
-      name: "Multi-Factor",
+      name: "Multi-Factor Authentication",
       icon: "shield-check",
-      description: "Combines email and phone backup.",
+      description: "Set up MFA for enhanced security.",
+      screenName: "MFA"
     },
     {
       level: 5,
       name: "Authenticator App",
       icon: "cellphone-key",
-      description: "Adds TOTP-based authentication.",
+      description: "Add TOTP-based authentication.",
+      screenName: "Authenticator"
     },
     {
       level: 6,
       name: "Hardware Key",
       icon: "usb",
-      description: "Strongest security with hardware key support.",
+      description: "Set up hardware key for strongest security.",
+      screenName: "HardwareKey"
     },
+    {
+      level: 7,
+      name: "Biometrics",
+      icon: "fingerprint",
+      description: "Enable biometric authentication.",
+      screenName: "Biometrics"
+    }
   ];
 
+  const blockchainCredentials = [
+    { name: 'ICP', icon: 'infinity', color: '#3B00B9', completed: true },
+    { name: 'Bitcoin (Ordinal)', icon: 'bitcoin', color: '#F7931A', completed: false },
+    { name: 'Stacks', icon: 'alpha-s-box', color: '#5546FF', completed: false },
+  ];
+
+  const recommendedNextStep = useMemo(() => {
+    return securityOptions.find(option => option.level > securityLevel) || null;
+  }, [securityLevel]);
+
+
+  const securityScore = useMemo(() => {
+    return securityOptions.reduce((score, option) => {
+      return score + (securityLevel >= option.level ? option.score : 0);
+    }, 0);
+  }, [securityLevel]);
+
+  const getSecurityColor = (level) => {
+    if (level >= 6) return colors.success;
+    if (level >= 3) return colors.warning;
+    return colors.error;
+  };
+
+  const getBadgeStatus = (level) => {
+    if (level >= 6) return 'success';
+    if (level >= 3) return 'warning';
+    return 'error';
+  };
+
+  
   useEffect(() => {
     setCurrentSecurity(
       securityOptions.find((option) => option.level === securityLevel)?.name ||
         "Basic"
     );
   }, [securityLevel]);
+
 
   const handleUpdateSecurity = useCallback(
     async (level) => {
@@ -96,6 +144,40 @@ const SecurityScreen = ({ navigation }) => {
       }
     },
     [twoFAEnabled, biometricsEnabled, updateSecurityLevel, updateSecuritySettings]
+  );
+
+  const renderBlockchainCredential = (credential) => (
+    <View key={credential.name} style={styles.credentialContainer}>
+      <Icon name={credential.icon} size={24} color={credential.color} />
+      <Text style={[styles.credentialText, { color: colors.text }]}>{credential.name}</Text>
+      <Icon 
+        name={credential.completed ? "check-circle" : "circle-outline"} 
+        size={24} 
+        color={credential.completed ? colors.success : colors.primary} 
+      />
+    </View>
+  );
+
+  const renderSecurityOption = (option) => (
+    <TouchableOpacity
+      key={option.level}
+      style={[styles.optionContainer, { backgroundColor: colors.card }]}
+      onPress={() => navigation.navigate(option.screenName)}
+    >
+      <Icon 
+        name={option.icon} 
+        size={24} 
+        color={getSecurityColor(option.level)} 
+      />
+      <View style={styles.optionTextContainer}>
+        <Text style={[styles.optionTitle, { color: colors.text }]}>{option.name}</Text>
+        <Progress.Bar 
+          progress={securityLevel >= option.level ? 1 : 0} 
+          width={null} 
+          color={getSecurityColor(option.level)}
+        />
+      </View>
+    </TouchableOpacity>
   );
 
   const SecurityOption = ({ option }) => (
@@ -130,38 +212,51 @@ const SecurityScreen = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.content}>
         <Animatable.View animation="fadeIn">
+
+          <Animatable.View animation="fadeIn">
           <Text style={[styles.title, { color: colors.text }]}>
-            Security Level: {securityLevel} - ({currentSecurity})
+            Credential Management
           </Text>
-          {securityOptions.map((option) => (
-            <SecurityOption key={option.level} option={option} />
-          ))}
-          <View style={styles.settingItem}>
-            <Text style={[styles.settingText, { color: colors.text }]}>
-              Enable 2FA
-            </Text>
-            <Switch
-              value={twoFAEnabled}
-              onValueChange={setTwoFAEnabled}
-              trackColor={{ false: colors.textSecondary, true: colors.primary }}
-            />
+
+          <Text style={[styles.credentialText, { color: colors.text }]}>
+            Security Level: {securityLevel} - ({currentSecurity})
+            {/* {securityOptions[securityLevel].name} */}
+            <Badge
+            value={securityLevel}
+            status={getBadgeStatus(securityLevel)}
+            containerStyle={styles.badgeContainer}
+          />
+          </Text>
+
+          {recommendedNextStep && (
+          <View style={styles.recommendationContainer}>
+            <Text style={[styles.recommendationTitle, { color: colors.text }]}>Recommended Next Step</Text>
+            <TouchableOpacity
+              style={[styles.recommendationButton, { backgroundColor: colors.primary }]}
+              onPress={() => navigation.navigate(recommendedNextStep.screenName)}
+            >
+              <Text style={[styles.recommendationButtonText, { color: colors.background }]}>
+                Setup {recommendedNextStep.name}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.settingItem}>
-            <Text style={[styles.settingText, { color: colors.text }]}>
-              Enable Biometrics
+        )}
+
+          {securityOptions.map(renderSecurityOption)}
+          <View style={styles.blockchainCredentialsContainer}>
+            <Text style={[styles.blockchainCredentialsTitle, { color: colors.text }]}>
+              Blockchain Credentials
             </Text>
-            <Switch
-              value={biometricsEnabled}
-              onValueChange={setBiometricsEnabled}
-              trackColor={{ false: colors.textSecondary, true: colors.primary }}
-            />
+            {blockchainCredentials.map(renderBlockchainCredential)}
           </View>
-          <Button
+        </Animatable.View>
+
+          {/* <Button
             title="Update Security Settings"
             onPress={handleUpdateSecurity}
             loading={isLoading}
             style={styles.button}
-          />
+          /> */}
           <Modal
             animationType="slide"
             visible={modalVisible}
@@ -206,9 +301,40 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  scoreContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  scoreTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  scoreValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  recommendationContainer: {
+    marginVertical: 20,
+  },
+  recommendationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  recommendationButton: {
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  recommendationButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   optionContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
@@ -219,7 +345,8 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   optionDescription: {
     fontSize: 14,
@@ -266,6 +393,30 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 20,
+  },
+  blockchainCredentialsContainer: {
+    marginTop: 20,
+    padding: 20,
+  },
+  blockchainCredentialsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  credentialContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  credentialText: {
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  badgeContainer: {
+    marginLeft: 10,
+    fontSize: 24,
+    padding: 6,
   },
 });
 

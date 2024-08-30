@@ -13,8 +13,10 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useTheme } from "../contexts/ThemeContext";
+import { Badge } from 'react-native-elements';
 import { WalletContext } from "../contexts/WalletContext";
-import { Button, Input } from "react-native-elements";
+import { Input } from "react-native-elements";
+import Button from "../components/Button"
 import LottieView from "lottie-react-native";
 import api from "../services/api";
 import { LinearGradient } from "expo-linear-gradient";
@@ -104,17 +106,16 @@ const SettingsScreen = ({ navigation }) => {
 
   const handleCreateWallet = async (type) => {
     try {
-      // Simulating wallet creation
+      const response = await api.post("/wallet/create", { type });
       Alert.alert(
         "Success",
-        `${
-          type.charAt(0).toUpperCase() + type.slice(1)
-        } wallet created successfully.`
+        `Bitcoin wallet created successfully.\nAddress: ${response.data.wallet.address}`
       );
       setModalVisible(false);
       fetchWalletData();
     } catch (error) {
-      Alert.alert("Error", "Failed to create wallet");
+      console.error("Error creating wallet:", error);
+      Alert.alert("Error", "Failed to create Bitcoin wallet");
     }
   };
 
@@ -160,6 +161,12 @@ const SettingsScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert("Error", "Failed to update active wallet");
     }
+  };
+
+  const getBadgeStatus = (level) => {
+    if (level >= 6) return 'success';
+    if (level >= 3) return 'warning';
+    return 'error';
   };
 
   const handleShowAccountDetails = () => {
@@ -280,6 +287,26 @@ const SettingsScreen = ({ navigation }) => {
     );
   };
 
+  const renderSecuritySection = () => (
+    <View style={styles.securitySection}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Security</Text>
+      <TouchableOpacity
+        style={styles.securityOption}
+        onPress={() => navigation.navigate('SecurityStack')}
+      >
+        <Icon name="shield-check" size={24} color={colors.primary} />
+        <Text style={[styles.securityOptionText, { color: colors.text }]}>
+          Security Settings
+        </Text>
+        <Badge
+          value={securityLevel}
+          status={getBadgeStatus(securityLevel)}
+          containerStyle={styles.badgeContainer}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderSettingsTile = (icon, title, onPress) => (
     <TouchableOpacity
       style={[styles.tile, { backgroundColor: colors.card }]}
@@ -336,7 +363,7 @@ const SettingsScreen = ({ navigation }) => {
     <LinearGradient style={styles.container} colors={gradientColors}>
       <ScrollView>
         {" "}
-        <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+        <Text style={[styles.title, { color: colors.text }]}>User Settings</Text>
         <View style={styles.tileContainer}>
           {renderSettingsTile("wallet-plus", "Create Wallet", () => {
             setModalContent(
@@ -346,7 +373,6 @@ const SettingsScreen = ({ navigation }) => {
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleCreateWallet("bitcoin")}
-                  // onPress={navigation.navigate('CreateWallet')}
                   style={styles.modalOption}
                 >
                   <Icon name="bitcoin" size={24} color={colors.primary} />
@@ -447,6 +473,7 @@ const SettingsScreen = ({ navigation }) => {
           {renderSettingsTile("shield-check", "Security Settings", () =>
             navigation.navigate("Security")
           )}
+           {renderSecuritySection()}
         </View>
         <View style={styles.settingItem}>
           <Text style={[styles.settingText, { color: colors.text }]}>
@@ -489,6 +516,27 @@ const styles = StyleSheet.create({
   },
   settingText: {
     fontSize: 18,
+  },
+  securitySection: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  securityOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 10,
+  },
+  securityOptionText: {
+    marginLeft: 10,
+    flex: 1,
+  },
+  badgeContainer: {
+    marginLeft: 10,
   },
   button: {
     marginTop: 20,
@@ -598,7 +646,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   modalButton: {
-    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    elevation: 3,
+    marginBottom: 6,
+    marginRight: 4,
+  },
+  buttonText: {
+    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

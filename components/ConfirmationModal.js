@@ -1,27 +1,12 @@
-import React, { useContext, useState } from "react";
-import { WalletContext } from "../contexts/WalletContext";
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
-import { PanGestureHandler, State } from "react-native-gesture-handler";
-import Animated, {
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  runOnJS,
-} from "react-native-reanimated";
-import api from "../services/api";
-import { useTheme } from "../contexts/ThemeContext";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useState, useContext } from 'react';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { WalletContext } from '../contexts/WalletContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
 
-const ConfirmationModal = ({ visible, onClose, onConfirm, details }) => {
-  const translateX = useSharedValue(0);
+const ConfirmationModal = ({ visible, onClose, details, navigation }) => {
   const { colors } = useTheme();
   const { sendTransaction } = useContext(WalletContext);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,153 +14,149 @@ const ConfirmationModal = ({ visible, onClose, onConfirm, details }) => {
   const handleConfirm = async () => {
     setIsLoading(true);
     try {
-      // Retrieve the wallet information first
-      const walletResponse = await api.get("/wallet/info");
-      const bitcoinWallet = walletResponse.data.wallets.find(w => w.type === 'bitcoin');
-      
-      if (!bitcoinWallet) {
-        throw new Error("Bitcoin wallet not found");
-      }
-      
-      let response;
-      switch (details.currency) {
-        case "bitcoin":
-          response = await api.post("/wallet/send-bitcoin", {
-            toAddress: details.recipient,
-            amount: parseFloat(details.amount),
-          });
-          break;
-        case "lightning":
-          response = await api.post("/lightning/pay-invoice", {
-            paymentRequest: details.recipient,
-          });
-          break;
-        case "litecoin":
-          response = await api.post("/wallet/send-litecoin", {
-            toAddress: details.recipient,
-            amount: parseFloat(details.amount),
-          });
-          break;
-        default:
-          throw new Error("Unsupported currency");
-      }
-
+      const response = await sendTransaction(details);
       setIsLoading(false);
       onClose();
-      navigation.navigate("TransactionStatus", {
-        status: "success",
-        txid: response.data.txid,
+      navigation.navigate('Home', {
+        // status: 'success',
+        // txid: response.txid,
       });
     } catch (error) {
       setIsLoading(false);
-      console.error("Transaction failed:", error);
-      Alert.alert(
-        "Error",
-        error.response?.data?.error || "Transaction failed. Please try again."
-      );
+      console.error('Transaction failed:', error);
+      navigation.navigate('Home', {
+        // status: 'error',
+        // message: error.message,
+      });
     }
   };
 
-  const panGestureEvent = useAnimatedGestureHandler({
-    onActive: (event) => {
-      translateX.value = Math.max(0, Math.min(event.translationX, 200));
-    },
-    onEnd: () => {
-      if (translateX.value > 150) {
-        runOnJS(handleConfirm)();
-      } else {
-        translateX.value = 0;
-      }
-    },
-  });
-
-  const rStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  });
-
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View
-        style={[styles.modalContainer, { backgroundColor: colors.background }]}
-      >
-        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Confirm Payment
-          </Text>
-          <Text style={[styles.detailText, { color: colors.text }]}>
-            Send to: {details.recipient}
-          </Text>
-          <Text style={[styles.detailText, { color: colors.text }]}>
-            Amount: {details.amount} {details.currency}
-          </Text>
-          <Text style={[styles.detailText, { color: colors.text }]}>
-            Network Cost: {details.networkCost}
-          </Text>
-          <Text style={[styles.detailText, { color: colors.text }]}>
-            Total: {details.total} {details.currency}
-          </Text>
-          {/* <PanGestureHandler onGestureEvent={panGestureEvent}>
-          <Animated.View style={[styles.slider, rStyle, { backgroundColor: colors.primary }]}>
-            <MaterialCommunityIcons name="gesture-swipe-right" size={24} color={colors.background} />
-            <Text style={[styles.sliderText, { color: colors.background }]}>Slide to send</Text>
-          </Animated.View>
-        </PanGestureHandler> */}
-          <TouchableOpacity onPress={handleConfirm} style={styles.cancelButton}>
-            <Text style={[styles.cancelText, { color: colors.text }]}>
-              Confirm
-            </Text>
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.modalContainer}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          style={styles.modalContent}
+        >
+          <Text style={styles.title}>Confirm Transaction</Text>
+          
+          <View style={styles.detailsContainer}>
+            <DetailItem icon="account-arrow-right" label="Recipient" value={details.recipient} />
+            <DetailItem icon="currency-btc" label="Amount" value={`${details.amount} ${details.currency}`} />
+            <DetailItem icon="speedometer" label="Network Fee" value={`${details.networkFee} ${details.currency}`} />
+            <DetailItem icon="rocket-launch" label="Priority" value={details.priority.charAt(0).toUpperCase() + details.priority.slice(1)} />
+            <DetailItem icon="calculator" label="Total" value={`${details.total} ${details.currency}`} highlight />
+          </View>
+
+          <LottieView
+            source={require('../assets/success-animation.json')}
+            autoPlay
+            loop
+            style={styles.animation}
+          />
+
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.confirmText}>Swipe to Confirm</Text>
+            )}
           </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
-            <Text style={[styles.cancelText, { color: colors.text }]}>
-              Cancel
-            </Text>
+
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </View>
     </Modal>
+  );
+};
+
+const DetailItem = ({ icon, label, value, highlight }) => {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.detailItem}>
+      <MaterialCommunityIcons name={icon} size={24} color={colors.text} />
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={[styles.detailValue, highlight && styles.highlightedValue]}>{value}</Text>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   modalContent: {
+    width: '90%',
+    borderRadius: 20,
     padding: 20,
-    borderRadius: 10,
-    width: "80%",
+    alignItems: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 20,
+  },
+  detailsContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  detailText: {
+  detailLabel: {
+    flex: 1,
     fontSize: 16,
-    marginBottom: 5,
-  },
-  slider: {
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-    flexDirection: "row",
-  },
-  sliderText: {
+    color: '#FFFFFF',
     marginLeft: 10,
+  },
+  detailValue: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  highlightedValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4169E1',
+  },
+  animation: {
+    width: 150,
+    height: 150,
+    marginBottom: 20,
+  },
+  confirmButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  confirmText: {
+    color: '#000000',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
   cancelButton: {
-    marginTop: 20,
-    alignItems: "center",
+    padding: 10,
   },
   cancelText: {
+    color: '#FFFFFF',
     fontSize: 16,
   },
 });
