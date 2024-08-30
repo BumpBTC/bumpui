@@ -389,18 +389,17 @@ const SendScreen = ({ navigation, route }) => {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.currencySelectorContainer}>
-          <CurrencySelector
-            selectedCrypto={selectedCrypto}
-            onSelect={(crypto) => setSelectedCrypto(crypto)}
-          />
-        </View>
         <Animatable.Text
           animation="fadeInDown"
           style={[styles.title, { color: colors.text }]}
         >
-          Send{" "}
-          {selectedCrypto.charAt(0).toUpperCase() + selectedCrypto.slice(1)}
+          Send{" "}{" "}
+          <View style={styles.currencySelectorContainer}>
+            <CurrencySelector
+              selectedCrypto={selectedCrypto}
+              onSelect={(crypto) => setSelectedCrypto(crypto)}
+            />
+          </View>
         </Animatable.Text>
         <Animatable.Text
           animation="fadeInUp"

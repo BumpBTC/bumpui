@@ -31,7 +31,7 @@ import HardwareKeyScreen from "../screens/HardwareKeyBackupScreen";
 import BiometricsScreen from "../screens/BiometricsSetupScreen";
 import BuyBitcoinScreen from "../screens/BuyBitcoinScreen";
 import { WalletContext } from "../contexts/WalletContext";
-import TransactionHistoryScreen from '../screens/TransactionHistoryScreen';
+import TransactionHistoryScreen from "../screens/TransactionHistoryScreen";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import * as Animatable from "react-native-animatable";
 
@@ -100,7 +100,10 @@ const MainStack = () => {
         name="TransactionStatus"
         component={TransactionStatusScreen}
       />
-      <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
+      <Stack.Screen
+        name="TransactionHistory"
+        component={TransactionHistoryScreen}
+      />
       <Stack.Screen name="CreateWallet" component={CreateWalletScreen} />
       <Stack.Screen name="Security" component={SecurityStack} />
       <Drawer.Screen name="Contacts" component={ContactsStack} />
@@ -160,20 +163,6 @@ const MainDrawer = () => {
         }}
       />
       <Drawer.Screen
-        name="Receive"
-        component={ReceiveScreen}
-        options={{
-          drawerIcon: ({ color, size }) => (
-            <AnimatedIcon
-              animation="bounceIn"
-              name="qrcode"
-              color={color}
-              size={size}
-            />
-          ),
-        }}
-      />
-      <Drawer.Screen
         name="Bump Pay"
         component={NFCPayScreen}
         options={{
@@ -187,6 +176,21 @@ const MainDrawer = () => {
           ),
         }}
       />
+      <Drawer.Screen
+        name="Receive"
+        component={ReceiveScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <AnimatedIcon
+              animation="bounceIn"
+              name="qrcode"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
+      />
+
       <Drawer.Screen
         name="Shop"
         component={ShopScreen}

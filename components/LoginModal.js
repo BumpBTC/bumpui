@@ -28,7 +28,6 @@ const LoginModal = ({ visible, onClose, navigation }) => {
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalContainer}>
         <View
           style={[
             styles.modalContainer,
@@ -62,7 +61,6 @@ const LoginModal = ({ visible, onClose, navigation }) => {
             style={styles.cancelButton}
           />
         </View>
-      </View>
     </Modal>
   );
 };
@@ -70,6 +68,7 @@ const LoginModal = ({ visible, onClose, navigation }) => {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
+    paddingHorizontal: 80,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -78,7 +77,6 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     padding: 20,
     borderRadius: 10,
-    width: "80%",
   },
   title: {
     fontSize: 24,
