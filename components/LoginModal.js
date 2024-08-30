@@ -1,7 +1,8 @@
 import React, { useState, useContext } from "react";
 import { View, Text, Modal, StyleSheet, TextInput, Alert } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Button from "./Button";
-import api from "../services/api";
+import { signup, login } from "../services/api";
 import { saveToken } from "../services/auth";
 import { useTheme } from "../contexts/ThemeContext";
 import { WalletContext } from "../contexts/WalletContext";
@@ -11,32 +12,22 @@ const LoginModal = ({ visible, onClose, navigation }) => {
   const [password, setPassword] = useState("");
   const { colors } = useTheme();
   const [error, setError] = useState("");
-  const { fetchWalletData } = useContext(WalletContext);
+  const { fetchWalletData, setIsLoggedIn } = useContext(WalletContext);
 
   const handleLogin = async () => {
     try {
-      setError("");
-      const response = await api.post("/auth/login", { identifier, password });
-      const { token } = response.data;
-      await saveToken(token);
-      await fetchWalletData();
-      onClose();
-      navigation.navigate("Main", { screen: "Home" });
+      const data = await login(username, password);
+      await AsyncStorage.setItem('userToken', data.token);
+      setIsLoggedIn(true);
+      fetchWalletData();
     } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
-      setError(
-        error.response?.data?.error || "Login failed. Please try again."
-      );
-      Alert.alert(
-        "Login Error",
-        error.response?.data?.error || "Login failed. Please try again."
-      );
+      console.error('Login failed:', error);
+      // Show error message to user
     }
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalContainer}>
         <View
           style={[
             styles.modalContainer,
@@ -70,7 +61,6 @@ const LoginModal = ({ visible, onClose, navigation }) => {
             style={styles.cancelButton}
           />
         </View>
-      </View>
     </Modal>
   );
 };
@@ -78,6 +68,7 @@ const LoginModal = ({ visible, onClose, navigation }) => {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
+    paddingHorizontal: 80,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -86,7 +77,6 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     padding: 20,
     borderRadius: 10,
-    width: "80%",
   },
   title: {
     fontSize: 24,

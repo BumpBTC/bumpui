@@ -1,62 +1,65 @@
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
-  Platform,
   Alert,
   TextInput,
+  Animated,
 } from "react-native";
-import Animated, {
+import NfcManager, { NfcTech, Ndef } from "react-native-nfc-manager";
+import { Svg, Path } from "react-native-svg";
+import LottieView from "lottie-react-native";
+import { useTheme } from "../contexts/ThemeContext";
+import { WalletContext } from "../contexts/WalletContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withRepeat,
-  withSequence,
-  withTiming,
+  interpolate,
+  Extrapolate,
 } from "react-native-reanimated";
-import NfcManager, { NfcTech, Ndef } from "react-native-nfc-manager";
-import {
-  Svg,
-  Path,
-  LinearGradient as SvgGradient,
-  Stop,
-} from "react-native-svg";
-// import LottieView from "lottie-react-native";
-import LottieView from "../components/LottieView";
-import Button from "../components/Button";
-import { useTheme } from "../contexts/ThemeContext";
-import { WalletContext } from "../contexts/WalletContext";
-import * as Animatable from "react-native-animatable";
-import { LinearGradient } from "expo-linear-gradient";
-
-const { width, height } = Dimensions.get("window");
 
 const NFCPayScreen = ({ navigation }) => {
   const [isNfcSupported, setIsNfcSupported] = useState(false);
-  const [selectedCrypto, setSelectedCrypto] = useState("bitcoin");
-  const [amount, setAmount] = useState(17.25);
-  const [inCrypto, setInCrypto] = useState(false);
+  const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [nfcChannelBalance, setNfcChannelBalance] = useState(0);
+  const [mode, setMode] = useState("send");
   const { colors } = useTheme();
-  const { sendTransaction, wallets } = useContext(WalletContext);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [displayAmount, setDisplayAmount] = useState({USD: "0", BTC: "0", SATS: "0"});
 
-  const pixelAnimation = useSharedValue(0);
-  const processingAnimation = useSharedValue(1);
+  const {
+    exchangeRates,
+    createNfcInvoice,
+    payNfcInvoice,
+    getNfcChannelBalance,
+  } = useContext(WalletContext);
+
+  const nfcAnimation = useRef(null);
+  const buttonScale = useSharedValue(1);
+  const rotation = useSharedValue(0);
 
   useEffect(() => {
-    pixelAnimation.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1000 }),
-        withTiming(0, { duration: 1000 })
-      ),
-      -1,
-      true
-    );
+    if (isProcessing) {
+      nfcAnimation.current?.play();
+    } else {
+      nfcAnimation.current?.reset();
+    }
+  }, [isProcessing]);
 
+  useEffect(() => {
     const checkNfcSupport = async () => {
       const supported = await NfcManager.isSupported();
       if (supported) {
@@ -65,23 +68,73 @@ const NFCPayScreen = ({ navigation }) => {
       }
     };
     checkNfcSupport();
+    fetchNfcChannelBalance();
 
-    return () => {
-      NfcManager.cancelTechnologyRequest().catch(() => 0);
-    };
+    return () => NfcManager.cancelTechnologyRequest().catch(() => 0);
   }, []);
 
-  const pixelStyle = useAnimatedStyle(() => {
-    return {
-      opacity: pixelAnimation.value,
-    };
-  });
+  const fetchNfcChannelBalance = async () => {
+    try {
+      const balance = await getNfcChannelBalance();
+      setNfcChannelBalance(balance);
+    } catch (error) {
+      console.error("Failed to fetch NFC channel balance:", error);
+    }
+  };
 
-  const processingStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: processingAnimation.value }],
-    };
-  });
+  const updateDisplayAmount = (value, fromCurrency) => {
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      setDisplayAmount("0");
+      return;
+    }
+
+    let btcAmount = 0;
+    if (fromCurrency === "USD") {
+      btcAmount = numValue / exchangeRates.bitcoin.usd;
+    } else if (fromCurrency === "BTC") {
+      btcAmount = numValue;
+    } else if (fromCurrency === "SATS") {
+      btcAmount = numValue / 100000000;
+    }
+
+    switch (displayCurrency) {
+      case "USD":
+        setDisplayAmount((btcAmount * exchangeRates.bitcoin.usd).toFixed(2));
+        break;
+      case "BTC":
+        setDisplayAmount(btcAmount.toFixed(8));
+        break;
+      case "SATS":
+        setDisplayAmount((btcAmount * 100000000).toFixed(0));
+        break;
+    }
+  };
+
+  const switchDisplayCurrency = () => {
+    setDisplayCurrency((prev) => {
+      if (prev === "USD") return "BTC";
+      if (prev === "BTC") return "SATS";
+      return "USD";
+    });
+  };
+
+  const handleAmountChange = (value) => {
+    setAmount(value);
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      setDisplayAmount({USD: "0", BTC: "0", SATS: "0"});
+      return;
+    }
+    const btcAmount = numValue / exchangeRates.bitcoin.usd;
+    const satsAmount = btcAmount * 100000000;
+    setDisplayAmount({
+      USD: numValue.toFixed(2),
+      BTC: btcAmount.toFixed(8),
+      SATS: satsAmount.toFixed(0)
+    });
+  };
+
 
   const handleNfcPayment = useCallback(async () => {
     if (!isNfcSupported) {
@@ -90,37 +143,33 @@ const NFCPayScreen = ({ navigation }) => {
     }
 
     setIsProcessing(true);
-    processingAnimation.value = withSpring(1.2);
 
     try {
       await NfcManager.requestTechnology(NfcTech.Ndef);
-      const tag = await NfcManager.getTag();
-      if (!tag) throw new Error("No tag found");
 
-      const message = Ndef.decodeMessage(tag.ndefMessage);
-      const paymentInfo = JSON.parse(message[0].payload);
+      if (mode === "send") {
+        const invoice = await createNfcInvoice(
+          parseFloat(amount),
+          "NFC Payment"
+        );
+        const ndef = Ndef.encodeMessage([
+          Ndef.textRecord(invoice.paymentRequest),
+        ]);
+        await NfcManager.setNdefPush(ndef);
+        Alert.alert("Ready to Send", "Touch phones to initiate transfer");
+      } else {
+        const tag = await NfcManager.getTag();
+        if (!tag) throw new Error("No tag found");
 
-      const { amount, address, currency } = paymentInfo;
-      const wallet = wallets.find(
-        (w) => w.type.toLowerCase() === currency.toLowerCase()
-      );
+        const ndef = tag.ndefMessage[0];
+        const paymentRequest = Ndef.text.decodePayload(ndef.payload);
 
-      if (!wallet) {
-        throw new Error(`No ${selectedCrypto} wallet found`);
+        await payNfcInvoice(paymentRequest);
+        Alert.alert("Success", "Payment received successfully");
       }
 
-      // await sendTransaction(selectedCrypto, "MERCHANT_ADDRESS", amount);
-      const txid = await sendTransaction(
-        currency,
-        selectedCrypto,
-        address,
-        parseFloat(amount)
-      );
-      Alert.alert(
-        "Success",
-        `Payment of ${amount} ${selectedCrypto} sent successfully. TXID: ${txid}`
-      );
       setIsComplete(true);
+      fetchNfcChannelBalance();
     } catch (error) {
       console.error("NFC payment error:", error);
       Alert.alert("Error", error.message || "Failed to complete NFC payment");
@@ -128,168 +177,191 @@ const NFCPayScreen = ({ navigation }) => {
       NfcManager.cancelTechnologyRequest().catch(() => 0);
       setIsProcessing(false);
     }
-  }, [isNfcSupported, selectedCrypto, amount, wallets, sendTransaction]);
+  }, [isNfcSupported, mode, amount, createNfcInvoice, payNfcInvoice]);
 
-  const getCryptoIcon = (crypto) => {
-    switch (crypto) {
-      case "bitcoin":
-        return "₿";
-      case "lightning":
-        return "⚡";
-      case "litecoin":
-        return "Ł";
-      default:
-        return "";
-    }
+  const handleReceive = () => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      setIsProcessing(false);
+      setIsComplete(true);
+      Alert.alert(
+        "Payment Received",
+        `You've received ${displayAmount[displayCurrency]} ${displayCurrency}`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setIsComplete(false);
+              setAmount("");
+              setDisplayAmount({USD: "0", BTC: "0", SATS: "0"});
+              navigation.navigate("NFCPay");
+            },
+          },
+        ]
+      );
+    }, 3000);
   };
 
-  const getThemeColor = () => {
-    switch (selectedCrypto) {
-      case "bitcoin":
-        return colors.bitcoin;
-      case "lightning":
-        return colors.lightning;
-      case "litecoin":
-        return colors.litecoin;
-      default:
-        return colors.primary;
-    }
+  const handleSend = () => {
+    buttonScale.value = withSpring(0.95, {}, () => {
+      buttonScale.value = withSpring(1);
+    });
+  
+    setIsProcessing(true);
+    setTimeout(() => {
+      setIsProcessing(false);
+      setIsComplete(true);
+      Alert.alert(
+        "Payment Sent",
+        `You've sent ${displayAmount[displayCurrency]} ${displayCurrency}`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setIsComplete(false);
+              setAmount("");
+              setDisplayAmount({USD: "0", BTC: "0", SATS: "0"});
+              navigation.navigate("NFCPay");
+            },
+          },
+        ]
+      );
+    }, 3000);
   };
 
-  if (Platform.OS === "ios") {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.text }]}>
-          NFC payments are not supported on iOS
-        </Text>
-      </View>
-    );
-  }
+  const animatedStyles = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: buttonScale.value }],
+    };
+  });
+
+  const rotationStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          rotateY: `${rotation.value}deg`,
+        },
+      ],
+    };
+  });
 
   if (isComplete) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: "#1a1a2e" }]}>
         <LottieView
           source={require("../assets/success-animation.json")}
           autoPlay
           loop={false}
           style={styles.successAnimation}
         />
-        <Text style={[styles.completeText, { color: colors.text }]}>
-          Payment Complete!
+        <Text style={[styles.completeText, { color: "#FFFFFF" }]}>
+          {mode === "send" ? "Payment Sent!" : "Payment Received!"}
         </Text>
       </View>
     );
   }
 
-  const renderCryptoSelector = () => (
-    <View style={styles.cryptoSelector}>
-      {["bitcoin", "lightning", "litecoin"].map((crypto) => (
-        <TouchableOpacity
-          key={crypto}
-          style={[
-            styles.cryptoOption,
-            {
-              backgroundColor:
-                selectedCrypto === crypto ? colors.primary : colors.background,
-            },
-          ]}
-          onPress={() => setSelectedCrypto(crypto)}
-        >
-          <Text
-            style={[
-              styles.cryptoText,
-              {
-                color:
-                  selectedCrypto === crypto ? colors.background : colors.text,
-              },
-            ]}
-          >
-            {crypto[0].toUpperCase()}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
-  const renderAmount = () => (
-    <TouchableOpacity
-      onPress={() => setInCrypto(!inCrypto)}
-      style={styles.amountContainer}
-    >
-      <Text style={styles.amountText}>
-        {inCrypto
-          ? `${amount.toFixed(8)} ${selectedCrypto.toUpperCase()}`
-          : `$${amount.toFixed(2)}`}
-      </Text>
-      <Svg height="24" width="24" viewBox="0 0 24 24" style={styles.switchIcon}>
-        <Path
-          d="M7.5 21.5L3 17l4.5-4.5L9 14l-3 3h8v2H6l3 3-1.5 1.5zM16.5 2.5L21 7l-4.5 4.5L15 10l3-3H10V5h8l-3-3 1.5-1.5z"
-          fill={colors.text}
-        />
-      </Svg>
-    </TouchableOpacity>
-  );
-
   return (
-    <LinearGradient colors={["#000033", "#333333"]} style={styles.container}>
+    <LinearGradient colors={["#1a1a2e", "#16213e"]} style={styles.container}>
       <TouchableOpacity
-        style={[styles.payButton, { backgroundColor: getThemeColor() }]}
-        onPress={handleNfcPayment}
+        style={[styles.payButton, { backgroundColor: colors.lightning }]}
         disabled={isProcessing}
+        onPress={handleNfcPayment}
       >
-        <Animated.View style={[styles.pixelOverlay, pixelStyle]} />
-        <Svg height="80" width="80" viewBox="0 0 24 24" style={styles.nfcIcon}>
-          <Path
-            d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zM18 6h-5c-1.1 0-2 .9-2 2v2.28c-.6.35-1 .98-1 1.72 0 1.1.9 2 2 2s2-.9 2-2c0-.74-.4-1.38-1-1.72V8h3v8H8V8h2V6H6v12h12V6z"
-            fill="#FFFFFF"
+        {isProcessing ? (
+          <LottieView
+            ref={nfcAnimation}
+            source={require("../assets/nfc-animation.json")}
+            autoPlay={true}
+            loop
+            style={styles.nfcAnimation}
           />
-        </Svg>
-        <Text style={styles.payButtonText}>
-          {isProcessing ? "Processing..." : "Hold Here to Pay"}
-        </Text>
-      </TouchableOpacity>
-      <View style={styles.content}>
-  
-        <View style={[{ backgroundColor: getThemeColor(), pb: 10 }]}>
-          <TouchableOpacity
-            style={styles.cryptoSelector}
-            onPress={() => {
-              const cryptos = ["bitcoin", "lightning", "litecoin"];
-              const currentIndex = cryptos.indexOf(selectedCrypto);
-              const nextIndex = (currentIndex + 1) % cryptos.length;
-              setSelectedCrypto(cryptos[nextIndex]);
-            }}
+        ) : (
+          <Svg
+            height="80"
+            width="80"
+            viewBox="0 0 24 24"
+            style={styles.nfcIcon}
           >
-            <Text style={styles.cryptoIcon}>
-              {getCryptoIcon(selectedCrypto)}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={[styles.amountText, { paddingVertical: 10 }]}>
-          {selectedCrypto.toUpperCase()}
+            <Path
+              d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zM18 6h-5c-1.1 0-2 .9-2 2v2.28c-.6.35-1 .98-1 1.72 0 1.1.9 2 2 2s2-.9 2-2c0-.74-.4-1.38-1-1.72V8h3v8H8V8h2V6H6v12h12V6z"
+              fill="#FFFFFF"
+            />
+          </Svg>
+        )}
+        <Text style={styles.payButtonText}>
+          {isProcessing
+            ? mode === "send"
+              ? "Waiting for Recipient"
+              : "Waiting for Sender"
+            : "Bump to Pay"}
         </Text>
-        <TextInput
-          style={styles.amountInput2}
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="numeric"
-        />
-        {/* {renderCryptoSelector()} */}
-        {renderAmount()}
-        </View>
+        {isProcessing && (
+          <MaterialCommunityIcons name="cellphone" size={24} color="#FFFFFF" />
+        )}
+      </TouchableOpacity>
 
+      <Reanimated.View style={[styles.displayContainer, rotationStyle]}>
+      <Text style={styles.displayText}>
+  {displayAmount[displayCurrency]} {displayCurrency}
+</Text>
+        <TouchableOpacity onPress={switchDisplayCurrency}>
+          <MaterialCommunityIcons
+            name="swap-horizontal"
+            size={24}
+            color="#FFFFFF"
+          />
+        </TouchableOpacity>
+      </Reanimated.View>
 
-      {/* <Svg height={height / 3} width={width}>
-        <SvgGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#000033" stopOpacity="1" />
-          <Stop offset="1" stopColor="#333333" stopOpacity="1" />
-        </SvgGradient>
-        <Path
-          d="M0 0 L${width} 0 L${width} ${height/3} Q${width/2} ${height/2.5} 0 ${height/3} Z"
-          fill="url(#grad)"
-        />
-      </Svg>{" "} */}
+      <View style={styles.modeSelector}>
+        <TouchableOpacity
+          style={[
+            styles.modeButton,
+            mode === "send" && styles.activeModeButton,
+          ]}
+          onPress={() => setMode("send")}
+        >
+          <Text style={styles.modeButtonText}>Send</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.modeButton,
+            mode === "receive" && styles.activeModeButton,
+          ]}
+          onPress={() => setMode("receive")}
+        >
+          <Text style={styles.modeButtonText}>Receive</Text>
+        </TouchableOpacity>
+      </View>
+
+      {mode === "send" && (
+        <>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.amountInput}
+              value={amount}
+              onChangeText={handleAmountChange}
+              placeholder="Enter amount in USD"
+              keyboardType="numeric"
+              placeholderTextColor="#FFFFFF"
+            />
+          </View>
+          <Reanimated.View style={[styles.sendButtonContainer, animatedStyles]}>
+            <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+              <Text style={styles.sendButtonText}>Send</Text>
+            </TouchableOpacity>
+          </Reanimated.View>
+        </>
+      )}
+
+      {mode === "receive" && (
+        <Reanimated.View style={[styles.sendButtonContainer, animatedStyles]}>
+          <TouchableOpacity style={styles.receiveButton} onPress={handleReceive}>
+            <Text style={styles.sendButtonText}>Receive</Text>
+          </TouchableOpacity>
+        </Reanimated.View>
+      )}
     </LinearGradient>
   );
 };
@@ -297,95 +369,16 @@ const NFCPayScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
     alignItems: "center",
     justifyContent: "center",
-  },
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  cryptoSelector: {
-    borderRadius: 15,
-    padding: 4,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-    backgroundColor: "white",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cryptoOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cryptoText: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  cryptoIcon: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  payeeText: {
-    color: "white",
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  amountContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 40,
-    
-  },
-  amountText: {
-    fontSize: 36,
-    fontWeight: "bold",
-    marginRight: 10,
-  },
-  switchIcon: {
-    marginLeft: 10,
-  },
-  amountInput: {
-    color: "white",
-    fontSize: 36,
-    fontWeight: "bold",
-    
-  },
-  amountInput2: {
-    width: '100%',
-    height: 40,
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    marginBottom: 20,
   },
   payButton: {
-    width: width * 2,
-    height: width * 0.8,
-    borderRadius: "50%",
+    width: 300,
+    height: 300,
+    borderRadius: 150,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -60,
-    overflow: "hidden",
-  },
-  paymentBox: {
-    padding: 10,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    marginBottom: 30,
     elevation: 5,
   },
   payButtonText: {
@@ -393,17 +386,80 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
-  },
-  pixelOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-  },
-  processingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    marginTop: 10,
   },
   nfcIcon: {
     marginBottom: 10,
+  },
+  nfcAnimation: {
+    width: 200,
+    height: 200,
+  },
+  displayContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 30,
+  },
+  displayText: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    marginRight: 10,
+    fontWeight: "bold",
+  },
+  modeSelector: {
+    flexDirection: "row",
+    marginBottom: 30,
+  },
+  modeButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginHorizontal: 10,
+    backgroundColor: "#FFA500",
+  },
+  activeModeButton: {
+    backgroundColor: "#FF8C00",
+  },
+  modeButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  inputContainer: {
+    width: "80%",
+    marginBottom: 20,
+  },
+  amountInput: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    color: "#FFFFFF",
+    fontSize: 18,
+  },
+  sendButtonContainer: {
+    width: "80%",
+  },
+  sendButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: "center",
+  },
+  sendButtonText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  receiveButton: {
+    backgroundColor: "#4CAF50", 
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: "center",
   },
   successAnimation: {
     width: 200,
@@ -413,24 +469,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginTop: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  description: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 30,
-  },
-  button: {
-    width: 200,
-  },
-  errorText: {
-    fontSize: 16,
-    textAlign: "center",
   },
 });
 

@@ -4,6 +4,7 @@ global.Buffer = global.Buffer || Buffer;
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from "../services/api";
+import { getWalletInfo } from "../services/api";
 import { removeToken } from "../services/auth";
 import { getToken } from "../services/auth";
 import * as bip39 from "bip39";
@@ -26,19 +27,34 @@ export const WalletProvider = ({ children }) => {
   const [taprootAddress, setTaprootAddress] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [enableTaproot, setEnableTaproot] = useState(false);
-  const [securityLevel, setSecurityLevel] = useState(1);
+  const [securityLevel, setSecurityLevel] = useState(0);
+  const [securityScore, setSecurityScore] = useState(0);
   const [channelCreationProgress, setChannelCreationProgress] = useState(0);
   const [exchangeRates, setExchangeRates] = useState({});
   const [selectedCrypto, setSelectedCrypto] = useState("bitcoin");
 
-  const checkLoginStatus = async () => {
+  const checkLoginStatus = useCallback(async () => {
     const token = await AsyncStorage.getItem('userToken');
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setIsLoggedIn(true);
-      await fetchWalletData();
+    setIsLoggedIn(!!token);
+  }, []);
+
+  const fetchWalletData = useCallback(async () => {
+    if (isLoggedIn) {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await getWalletInfo();
+        setWallets(data.wallets || []);
+        setTransactions(data.transactions || []);
+        setSelectedCrypto(data.activeWallet || null);
+      } catch (error) {
+        console.error("Failed to fetch wallet data:", error);
+        setError(error.response?.data?.error || "Failed to fetch wallet data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [isLoggedIn]);
 
   const login = async (token) => {
     await AsyncStorage.setItem('userToken', token);
@@ -47,32 +63,6 @@ export const WalletProvider = ({ children }) => {
     fetchWalletData();
   };
 
-  const fetchWalletData = useCallback(async () => {
-    if (isLoggedIn) {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const token = await AsyncStorage.getItem('userToken');
-        if (!token) {
-          setError("No token found. Please log in.");
-          setIsLoading(false);
-          return;
-        }
-        const response = await api.get("/wallet/info");
-        setWallets(response.data.wallets || []);
-        setTransactions(response.data.transactions || []);
-        setSelectedCrypto(response.data.activeWallet);
-      } catch (error) {
-        console.error("Failed to fetch wallet data:", error);
-        setError(
-          error.response?.data?.error ||
-            "Failed to fetch wallet data. Please try again."
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  }, [isLoggedIn]);
 
   const fetchWalletInfo = useCallback(async () => {
     try {
@@ -130,6 +120,7 @@ export const WalletProvider = ({ children }) => {
     fetchWalletData();
     // generateAddresses();
     fetchExchangeRates();
+    calculateSecurityScore(securityLevel);
     const interval = setInterval(fetchExchangeRates, 300000); // Update every 5 minutes
     return () => clearInterval(interval);
   }, [fetchWalletData, fetchExchangeRates]);
@@ -371,12 +362,31 @@ export const WalletProvider = ({ children }) => {
   const updateSecurityLevel = async (level) => {
     try {
       const response = await api.post("/wallet/update-security", { level });
-      setSecurityLevel(response.data.securityLevel);
+      setSecurityLevel(level);
+      calculateSecurityScore(level);
       return response.data;
     } catch (error) {
       console.error("Failed to update security level:", error);
       throw error;
     }
+  };
+
+  const calculateSecurityScore = (level) => {
+    const securityOptions = [
+      { level: 1, score: 100 },
+      { level: 2, score: 100 },
+      { level: 3, score: 100 },
+      { level: 4, score: 150 },
+      { level: 5, score: 150 },
+      { level: 6, score: 200 },
+      { level: 7, score: 200 },
+    ];
+
+    const score = securityOptions.reduce((total, option) => {
+      return total + (level >= option.level ? option.score : 0);
+    }, 0);
+
+    setSecurityScore(score);
   };
 
   const getLightningBalance = async () => {
@@ -409,6 +419,47 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
+  const createNfcChannel = async () => {
+    try {
+      const response = await api.post("/lightning/create-nfc-channel");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create NFC channel:", error);
+      throw error;
+    }
+  };
+
+  const getNfcChannelBalance = async () => {
+    try {
+      const response = await api.get("/lightning/nfc-channel-balance");
+      return response.data.balance;
+    } catch (error) {
+      console.error("Failed to get NFC channel balance:", error);
+      throw error;
+    }
+  };
+
+  const createNfcInvoice = async (amount, description) => {
+    try {
+      const response = await api.post("/lightning/create-nfc-invoice", { amount, description });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create NFC invoice:", error);
+      throw error;
+    }
+  };
+
+  const payNfcInvoice = async (paymentRequest) => {
+    try {
+      const response = await api.post("/lightning/pay-nfc-invoice", { paymentRequest });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to pay NFC invoice:", error);
+      throw error;
+    }
+  };
+
+
   const backupWallet = async () => {
     try {
       const response = await api.get("/wallet/backup");
@@ -439,6 +490,7 @@ export const WalletProvider = ({ children }) => {
         transactions,
         isLoading,
         isLoggedIn,
+        setIsLoggedIn,
         error,
         fetchWalletData,
         sendBitcoin,
@@ -477,9 +529,14 @@ export const WalletProvider = ({ children }) => {
         importWallet,
         securityLevel,
         updateSecurityLevel,
+        securityScore,
         getTransactionHistory,
         convertAmount,
         exchangeRates,
+        createNfcChannel,
+        getNfcChannelBalance,
+        createNfcInvoice,
+        payNfcInvoice,
         backupWallet,
         restoreWallet,
       }}

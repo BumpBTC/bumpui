@@ -62,6 +62,12 @@ press s | switch to Expo Go (Android Phone)
 
 ### 2.3 Building
 
+08/30/24
+
+`npm install -g eas-cli`
+`eas build -p android`
+
+
 For build instructions for the client, please see [Expo documentation](https://docs.expo.io/versions/latest/distribution/building-standalone-apps/) for building. This project uses Expo SDK 33. 
 
 Options include:
@@ -112,26 +118,33 @@ Ensure that the NFCPayScreen.js file is updated as we discussed earlier.
 To make the NFC work with the app and phone, you'll need to build a development client or create a standalone app. Expo Go doesn't support custom native modules like react-native-nfc-manager. Here's how to do it:
 
 a. Install the EAS CLI if you haven't already:
-Copynpm install -g eas-cli
+`npm install -g eas-cli`
 
 b. Log in to your Expo account:
-Copyeas login
+`eas login`
 
 c. Configure your project for building:
-Copyeas build:configure
+`eas build:configure`
 
 d. Build a development client:
-Copyeas build --profile development --platform android
+`eas build --profile development --platform android`
 
 This will create an APK file that you can install on your Android device for testing.
 
-Once you have the development build installed on your Android device, you can test the NFC functionality using the NFCPayScreen we implemented earlier.
+Once you have the development build installed on your Android device, you can test the NFC functionality using the NFCPayScreen.
+
+Build for Expo Go:
+`expo publish`
 
 For production, you'll need to build a standalone app:
-Copyeas build --platform android
+`eas build -p android`
+`eas build --platform android`
 
+Build APK for Android:
+`expo build:android -t apk`
 
-Remember that NFC functionality will only work on Android devices with NFC hardware. The iOS version won't have NFC payment capabilities, as we've already handled that case in the NFCPayScreen.js component.
+NFC functionality will only work on Android devices with NFC hardware. The iOS version won't have NFC payment capabilities, as we've already handled that case in the NFCPayScreen.js component.
+
 To test the NFC functionality:
 
 Install the development build on an NFC-capable Android device.
@@ -154,10 +167,14 @@ The NFC tag or simulated payment terminal is properly formatted with the expecte
 
 By following these steps, you should be able to get NFC working with your Expo-based React Native app on Android devices.
 
-To test the NFC functionality, you'll need to use a physical Android device with NFC capabilities. Here are some steps to test:
+To test the NFC functionality, you'll need to use a physical Android device with NFC capabilities. 
+
+Here are some steps to test:
 
 Install the app on an NFC-enabled Android device.
+
 Ensure NFC is enabled in the device settings.
+
 Prepare an NFC tag with payment information. You can use an NFC writing app to write a JSON payload to an NFC tag. The payload should look like this:
 
 jsonCopy{
@@ -242,7 +259,40 @@ Clear cache
     }
 }
 
+
 ---
+
+curl -X POST http://localhost:5000/api/auth/signup \
+-H "Content-Type: application/json" \
+-d '{"username":"test2424","email":"test2424@test.com","password":"123"}'
+
+curl -X POST http://localhost:5000/api/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username":"test2424","password":"123"}'
+
+curl -X GET http://localhost:5000/api/wallet/info \
+-H "Authorization: Bearer YOUR_TOKEN_HERE"
+
+c0ae9a74e76ee990a517a4ac7795b202ac857ede8a87cd891cf390c6efc4e27c
+
+---
+
+---
+
+8.28
+{
+    "message": "User created successfully",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NmNmYTA3YzI0M2QzNTk5ZWUyOTk5YjEiLCJpYXQiOjE3MjQ4ODMwNjgsImV4cCI6MTcyNTQ4Nzg2OH0.37fUa102uYAzc7v5Bhw71HSTyZ2EZKYkBdPtgYCaI8U",
+    "user": {
+        "wallets": [
+            {
+                "type": "bitcoin",
+                "address": "tb1qqlxnfcunuvz8khngz96v94xkng2rlxymr4g99h",
+                "balance": 0
+            }
+        ]
+    }
+}
 
  testgaff | gaFFNEY311@outlook.com | 123
 

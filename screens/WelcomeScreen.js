@@ -28,7 +28,7 @@ const WelcomeScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View style={{ ...styles.content, opacity: fadeAnim }}>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
+        <Image source={require('../assets/bumpbtc.png')} style={styles.logo} />
         <Text style={[styles.title, { color: colors.text }]}>Bump-to-Pay</Text>
         <Text style={[styles.subtitle, { color: colors.text }]}>The fastest and easiest way to use Bitcoin.</Text>
         <Button title="Create Account" onPress={() => navigation.navigate('SignUp')} />
@@ -60,9 +60,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 30,
+    width: 200,
+    height: 200,
   },
   title: {
     fontSize: 24,

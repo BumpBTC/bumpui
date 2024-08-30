@@ -10,6 +10,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access camera."
+        }
+      ]
+    ],
     "updates": {
       "fallbackToCacheTimeout": 0
     },
@@ -25,11 +33,17 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "permissions": ["NFC"],
+      "permissions": [
+        "NFC",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
       "intentFilters": [
         {
           "action": "android.nfc.action.NDEF_DISCOVERED",
-          "category": ["android.intent.category.DEFAULT"],
+          "category": [
+            "android.intent.category.DEFAULT"
+          ],
           "data": {
             "mimeType": "application/com.bumpbtc.bumpbtcwallet"
           }
@@ -41,8 +55,15 @@
       "favicon": "./assets/favicon.png",
       "build": {
         "babel": {
-          "include": ["@dotlottie/react-player"]
+          "include": [
+            "@dotlottie/react-player"
+          ]
         }
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "94b167d6-0b01-42a9-b8b9-01841bd7121e"
       }
     }
   }

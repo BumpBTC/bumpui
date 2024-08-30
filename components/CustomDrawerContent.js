@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, Image, StyleSheet, Animated } from "react-native";
 import {
   DrawerContentScrollView,
   DrawerItemList,
@@ -8,12 +8,12 @@ import {
 import { useTheme } from "../contexts/ThemeContext";
 import { WalletContext } from "../contexts/WalletContext";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { Ionicons } from "@expo/vector-icons";
-import Button from "./Button";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Animatable from "react-native-animatable";
 import CurrencySelector from "./CurrencySelector";
 
 const CustomDrawerContent = (props) => {
-  const { colors, toggleTheme } = useTheme();
+  const { colors, isDarkMode, toggleTheme } = useTheme();
   const { logout, selectedCrypto } = useContext(WalletContext);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
@@ -25,87 +25,135 @@ const CustomDrawerContent = (props) => {
     });
   };
 
+  const animatedValue = new Animated.Value(0);
+
+  const animate = () => {
+    Animated.timing(animatedValue, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  React.useEffect(() => {
+    animate();
+  }, []);
+
+  const translateX = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-100, 0],
+  });
+
   return (
     <DrawerContentScrollView
       {...props}
       style={{ backgroundColor: colors.background }}
     >
-      <View style={styles.drawerHeader}>
-        <Image source={require("../assets/bump.png")} style={styles.logo} />
-        {/* <Text style={[styles.drawerHeaderText, { color: colors.text }]}>
-          Bump BTC Wallet
-        </Text> */}
-        <CurrencySelector />
-      </View>
+      <Animated.View>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          style={styles.drawerHeader}
+        >
+          <Image source={require("../assets/bump.png")} style={styles.logo} />
+          <CurrencySelector />
+        </LinearGradient>
 
-      <DrawerItemList {...props} />
+        <DrawerItemList
+          {...props}
+          itemStyle={styles.drawerItem}
+          labelStyle={[styles.drawerLabel, { color: colors.text }]}
+          activeBackgroundColor={colors.activeDrawerItem}
+        />
 
-      <DrawerItem
-        label="Settings"
-        onPress={() => setShowSettingsMenu(!showSettingsMenu)}
-        icon={({ color, size }) => (
-          <Ionicons name="settings-outline" color={color} size={size} />
+        <DrawerItem
+          label="Settings"
+          onPress={() => setShowSettingsMenu(!showSettingsMenu)}
+          icon={({ color, size }) => (
+            <Icon name="cog-outline" color={'blue'} size={size} />
+          )}
+          labelStyle={[styles.drawerLabel, { color: colors.text }]}
+        />
+
+        {showSettingsMenu && (
+          <Animatable.View
+            animation="fadeIn"
+            duration={300}
+            style={styles.settingsSubmenu}
+          >
+            <DrawerItem
+              label="User Settings"
+              onPress={() => props.navigation.navigate("Settings")}
+              icon={({ color, size }) => (
+                <Icon name="account-cog-outline" color={color} size={size} />
+              )}
+              labelStyle={[styles.drawerLabel, { color: colors.text }]}
+            />
+            <DrawerItem
+              label="Security"
+              onPress={() => props.navigation.navigate("Security")}
+              icon={({ color, size }) => (
+                <Icon name="shield-check-outline" color={color} size={size} />
+              )}
+              labelStyle={[styles.drawerLabel, { color: colors.text }]}
+            />
+            <DrawerItem
+              label="Contacts"
+              onPress={() => props.navigation.navigate("Contacts")}
+              icon={({ color, size }) => (
+                <Icon name="contacts-outline" color={color} size={size} />
+              )}
+              labelStyle={[styles.drawerLabel, { color: colors.text }]}
+            />
+          </Animatable.View>
         )}
-      />
 
-      {showSettingsMenu && (
-        <View style={styles.settingsSubmenu}>
-          <DrawerItem
-            label="User Settings"
-            onPress={() => props.navigation.navigate("Settings")}
-          />
-          <DrawerItem
-            label="Security"
-            onPress={() => props.navigation.navigate("Security")}
-          />
-          <DrawerItem
-            label="Contacts"
-            onPress={() => props.navigation.navigate("Contacts")}
-          />
-        </View>
-      )}
-
-      <DrawerItem
-        label="Toggle Theme"
-        onPress={toggleTheme}
-        icon={({ color, size }) => (
-          <Icon name="theme-light-dark" color={color} size={size} />
-        )}
-      />
-      <DrawerItem
-        label="Logout"
-        onPress={handleLogout}
-        icon={({ color, size }) => (
-          <Icon name="logout" color={color} size={size} />
-        )}
-      />
+        <DrawerItem
+          label="Toggle Theme"
+          onPress={toggleTheme}
+          icon={({ color, size }) => (
+            <Icon
+              name={isDarkMode ? "weather-night" : "weather-sunny"}
+              color={'green'}
+              size={size}
+            />
+          )}
+          labelStyle={[styles.drawerLabel, { color: colors.text }]}
+        />
+        <DrawerItem
+          label="Logout"
+          onPress={handleLogout}
+          icon={({ color, size }) => (
+            <Icon name="logout" color={'red'} size={size} />
+          )}
+          labelStyle={[styles.drawerLabel, { color: colors.text }]}
+        />
+      </Animated.View>
     </DrawerContentScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   drawerHeader: {
+    marginTop: -10,
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  drawerHeaderText: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
   logo: {
     width: 96,
     height: 33,
-    alignItems: "center"
+    resizeMode: "contain",
   },
-  themeToggleContainer: {
-    padding: 20,
+  drawerItem: {
+    borderRadius: 8,
+    marginHorizontal: 8,
+    marginVertical: 4,
   },
-  themeToggleButton: {
-    marginTop: 20,
+  drawerLabel: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   settingsSubmenu: {
     marginLeft: 20,

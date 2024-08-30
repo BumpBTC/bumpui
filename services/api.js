@@ -6,9 +6,22 @@ const api = axios.create({
   baseURL: 'http://192.168.1.199:5000/api',
 });
 
+export const signup = async (username, email, password) => {
+  const response = await api.post('/auth/signup', { username, email, password });
+  return response.data;
+};
+
+export const login = async (username, password) => {
+  const response = await api.post('/auth/login', { username, password });
+  return response.data;
+};
+
 export const getWalletInfo = async () => {
   try {
-    const response = await axios.get('/wallet/info');
+    const token = await AsyncStorage.getItem('userToken');
+    const response = await api.get('/wallet/info', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching wallet info:', error);

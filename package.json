@@ -1,12 +1,14 @@
 {
   "name": "bumpbtc-wallet-ui",
-  "version": "0.0.2",
+  "version": "0.1",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build": "npx expo export",
+    "build-andorid": "expo build:android"
   },
   "dependencies": {
     "@dotlottie/react-player": "^1.6.19",
@@ -16,6 +18,7 @@
     "@expo/vector-icons": "^14.0.0",
     "@mui/icons-material": "^5.16.7",
     "@react-native-async-storage/async-storage": "1.21.0",
+    "@react-native-community/slider": "^4.5.2",
     "@react-native-picker/picker": "^2.7.7",
     "@react-navigation/drawer": "^6.6.6",
     "@react-navigation/native": "^6.1.9",
@@ -26,6 +29,7 @@
     "bitcoinjs-lib": "^6.1.6",
     "buffer": "^6.0.3",
     "expo": "~50.0.7",
+    "expo-camera": "^15.0.15",
     "expo-clipboard": "~5.0.1",
     "expo-file-system": "~16.0.6",
     "expo-image-picker": "~14.7.1",
@@ -35,6 +39,7 @@
     "expo-sharing": "~11.10.0",
     "expo-status-bar": "~1.4.2",
     "lottie-react-native": "^6.7.2",
+    "lucide-react": "^0.436.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-error-boundary": "^4.0.13",
@@ -42,8 +47,10 @@
     "react-native-animatable": "^1.4.0",
     "react-native-crypto": "^2.2.0",
     "react-native-dropdown-picker": "^5.4.6",
+    "react-native-elements": "^3.4.3",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-nfc-manager": "^3.14.12",
+    "react-native-progress": "^5.0.1",
     "react-native-qrcode-svg": "^6.3.0",
     "react-native-randombytes": "^3.6.1",
     "react-native-reanimated": "~3.6.2",
