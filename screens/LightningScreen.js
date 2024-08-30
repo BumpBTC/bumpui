@@ -315,7 +315,7 @@ const LightningScreen = ({ navigation, route }) => {
     >
       <ScrollView contentContainerStyle={styles.content}>
         <Animatable.View animation="fadeIn" duration={1000}>
-          <Animatable.View animation="fadeIn">
+          {/* <Animatable.View animation="fadeIn">
             <Text style={[styles.title, { color: colors.text }]}>
               Lightning Network
             </Text>
@@ -361,7 +361,7 @@ const LightningScreen = ({ navigation, route }) => {
               loading={isLoading}
               style={styles.button}
             />
-          </Animatable.View>
+          </Animatable.View> */}
 
           <View style={styles.buttonGrid}>
             <TouchableOpacity
@@ -644,9 +644,6 @@ const styles = StyleSheet.create({
   },
   button: {
     marginVertical: 10,
-  },
-  content: {
-    padding: 20,
   },
   dropdown: {
     marginBottom: 20,
